@@ -1,0 +1,61 @@
+{
+  "name": "tessra",
+  "productName": "Tessra",
+  "version": "1.0.0",
+  "description": "Tessra: a desktop trading journal for futures and prop firm traders",
+  "main": "main.js",
+  "author": "Ethan",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac --dir",
+    "dist:mac": "electron-builder --mac dmg --arm64 --x64 --publish never",
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.cactiinnovations.tessra",
+    "productName": "Tessra",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "build/icon.png"
+    ],
+    "mac": {
+      "category": "public.app-category.finance",
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.png",
+      "identity": null,
+      "artifactName": "Tessra-${version}-mac-${arch}.${ext}"
+    },
+    "directories": {
+      "buildResources": "build"
+    },
+    "afterPack": "build/adhoc-sign.js",
+    "dmg": {
+      "title": "Tessra ${version}"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "artifactName": "Tessra-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Tessra"
+    },
+    "publish": null
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tatarigami22/tessra-journal.git"
+  },
+  "homepage": "https://github.com/tatarigami22/tessra-journal"
+}

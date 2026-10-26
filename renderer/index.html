@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self'; img-src 'self' file: data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Tessra</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand drag">
+        <div class="brand-mark"><img src="brand/mark.png" alt="Tessra" width="36" height="36"></div>
+        <div><div class="brand-name">Tessra</div><div class="brand-sub">Trade. Review. Improve.</div></div>
+      </div>
+      <nav id="nav" class="nav"></nav>
+      <div id="updateBar"></div>
+      <div class="sidebar-foot" id="sidebarFoot"></div>
+    </aside>
+    <main class="main">
+      <header class="topbar drag">
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <div id="pageSub" class="page-sub"></div>
+        </div>
+        <div class="topbar-actions no-drag">
+          <select id="accountFilter" class="select" title="Account filter"></select>
+          <button class="btn primary" data-action="new-trade"><svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>New Trade</button>
+        </div>
+      </header>
+      <section id="view" class="view"></section>
+    </main>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toast" class="toast"></div>
+  <script src="brand.js"></script>
+  <script src="store.js"></script>
+  <script src="charts.js"></script>
+  <script src="util.js"></script>
+  <script src="pages-a.js"></script>
+  <script src="pages-b.js"></script>
+  <script src="vendor/giflib.js"></script>
+  <script src="forms.js"></script>
+  <script src="share.js"></script>
+  <script src="features.js"></script>
+  <script src="features2.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

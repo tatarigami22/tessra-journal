@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs><linearGradient id="Dbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2029"/><stop offset="1" stop-color="#07090c"/></linearGradient><linearGradient id="Dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5dfcc0"/><stop offset="1" stop-color="#14c08a"/></linearGradient><clipPath id="Dc"><path d="M100 285C100 182 182 100 285 100H739C842 100 924 182 924 285V739C924 842 842 924 739 924H285C182 924 100 842 100 739Z"/></clipPath>
+<linearGradient id="Dhl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".10"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+<path d="M100 285C100 182 182 100 285 100H739C842 100 924 182 924 285V739C924 842 842 924 739 924H285C182 924 100 842 100 739Z" fill="url(#Dbg)"/>
+<g clip-path="url(#Dc)">
+      <path d="M60 860 L964 300 V980 H60 Z" fill="url(#Dg)"/>
+      <path d="M60 860 L964 300" stroke="#fff" stroke-width="10" stroke-opacity=".9"/>
+      <g fill="#e9edf2">
+        <rect x="292" y="520" width="76" height="150" rx="12"/><rect x="326" y="470" width="8" height="240" rx="4"/>
+        <rect x="474" y="402" width="76" height="150" rx="12"/><rect x="508" y="352" width="8" height="240" rx="4"/>
+        <rect x="656" y="284" width="76" height="150" rx="12"/><rect x="690" y="234" width="8" height="240" rx="4"/></g></g>
+<path d="M100 285C100 182 182 100 285 100H739C842 100 924 182 924 285V739C924 842 842 924 739 924H285C182 924 100 842 100 739Z" fill="url(#Dhl)"/>
+<path d="M100 285C100 182 182 100 285 100H739C842 100 924 182 924 285V739C924 842 842 924 739 924H285C182 924 100 842 100 739Z" fill="none" stroke="#fff" stroke-opacity=".10" stroke-width="4"/></svg>

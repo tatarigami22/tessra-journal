@@ -45,9 +45,13 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
-      - run: npm run ${{ matrix.script }}
+      - name: Build installers
+        shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          set -o pipefail
+          npm run ${{ matrix.script }} 2>&1 | tee build.log || { tail -25 build.log | sed 's/^/::error::/'; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}

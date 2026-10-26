@@ -82,9 +82,9 @@ npm start
 
 ### Releasing a new version
 
-1. Bump `version` in `package.json` (for example `1.0.1`) and commit.
-2. Push a matching tag: `git tag v1.0.1 && git push --tags`.
-3. GitHub Actions builds the Mac and Windows installers and publishes the release. Everyone running Tessra sees the update button next time they open it.
+1. Bump `version` in `package.json` (for example `1.0.1`).
+2. Commit and push to `main`.
+3. GitHub Actions builds the Mac and Windows installers and publishes release `v1.0.1`. Everyone running Tessra sees the update button next time they open it.
 
 ## License
 

@@ -1,3 +1,6 @@
+> [!NOTE]
+> **I don't earn money from this, it's for the community to benefit but please follow my Instagram [@NQ.Masked](https://www.instagram.com/nq.masked/)**
+
 <p align="center"><img src="build/icon.png" width="128" alt="Tessra"></p>
 <h1 align="center">Tessra</h1>
 <p align="center"><b>Trade. Review. Improve.</b><br>A free desktop trading journal for futures and prop firm traders. Everything stays on your computer.</p>

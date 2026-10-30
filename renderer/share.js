@@ -458,22 +458,31 @@ const Share = (() => {
   /* ---------- export helpers ---------- */
   function bytesToB64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
   async function saveBytes(name, b64, mime) {
-    if (window.edge && window.edge.saveBinary) { const p = await window.edge.saveBinary(name, b64); if (p) toast('Saved'); return; }
+    if (window.edge && window.edge.saveBinary) {
+      try { const p = await window.edge.saveBinary(name, b64); if (p) toast('Saved to ' + String(p).split(/[\\/]/).slice(-2).join('/')); else toast('Save cancelled'); return; }
+      catch (e) { shareFail('Save', e); }
+    }
     const a = document.createElement('a'); a.href = `data:${mime};base64,${b64}`; a.download = name; a.click();
+  }
+  function shareFail(what, e) {
+    console.error('[share] ' + what + ' failed', e);
+    const msg = (e && (e.message || e.name)) || String(e);
+    toast(`${what} failed: ${msg.slice(0, 90)}`);
+    try { (S.state.shareErrors = (S.state.shareErrors || []).slice(-9)).push({ at: new Date().toISOString(), what, msg, platform: (window.edge && window.edge.platform) || 'web' }); S.save(); } catch (_) {}
   }
   async function copyPng(dataUrl) {
     try {
       if (window.edge && window.edge.copyImage) await window.edge.copyImage(dataUrl);
       else { const blob = await (await fetch(dataUrl)).blob(); await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); }
       toast(`Card copied. Paste it anywhere with ${MOD}V`);
-    } catch (e) { console.error(e); toast('Copy failed, use Save PNG instead'); }
+    } catch (e) { shareFail('Copy', e); }
   }
   async function airdrop(name, b64, mime) {
     if (!(window.edge && window.edge.shareFile)) { toast('AirDrop works in the Mac app. Saving instead.'); return saveBytes(name, b64, mime); }
     try {
       const r = await window.edge.shareFile(name, b64);
-      if (r === 'menu') toast('Pick AirDrop, then your iPhone');
-    } catch (e) { console.error(e); toast('Could not open the share menu'); }
+      if (r === 'menu') toast('Pick AirDrop, then your iPhone'); else if (r === 'folder') toast(IS_MAC ? 'Share menu unavailable, opened the file in Finder instead' : 'Opened the card in its folder');
+    } catch (e) { shareFail('AirDrop', e); }
   }
   /* ---------- animation timeline: count-up, pop, hold, background frames ---------- */
   function buildTimeline(bg, countUp) {
@@ -621,8 +630,8 @@ const Share = (() => {
       if (e.target.closest('[data-close]')) return closeModal(m);
       const a = e.target.closest('[data-act]');
       if (!a || busy) return;
-      const [W, H] = SIZES[o.size];
-      const d = getData();
+      let W, H, d;
+      try { [W, H] = SIZES[o.size] || SIZES.banner; d = getData(); } catch (err) { return shareFail('Share', err); }
       const fname = (kind === 'trade' ? `${d.title}-${S.dayOf(t)}` : kind === 'month' ? `recap-${ref}` : `day-${ref}`).replace(/[^\w-]+/g, '_');
       if (a.dataset.act === 'gif' || (a.dataset.act === 'airdrop' && isAnimated())) {
         busy = true; const lbl = a.innerHTML;
@@ -630,13 +639,16 @@ const Share = (() => {
           const bytes = await buildGif(bgData, W, H, d, o, buildTimeline(bgData, o.countUp), p => { a.innerHTML = `Encoding ${Math.round(p * 100)}%`; });
           if (a.dataset.act === 'airdrop') await airdrop(`${fname}.gif`, bytesToB64(bytes), 'image/gif');
           else await saveBytes(`${fname}.gif`, bytesToB64(bytes), 'image/gif');
-        } catch (err) { console.error(err); toast('GIF export failed'); }
+        } catch (err) { shareFail(a.dataset.act === 'airdrop' ? 'AirDrop' : 'GIF', err); }
         a.innerHTML = lbl; busy = false; return;
       }
-      const full = document.createElement('canvas'); full.width = W; full.height = H;
-      const frame = bgData && bgData.frames[cur.fi % bgData.frames.length];
-      renderCard(full.getContext('2d'), W, H, frame ? frame.canvas : null, d, Object.assign({}, o, { progress: 1, pop: 0 }));
-      const url = full.toDataURL('image/png');
+      let url;
+      try {
+        const full = document.createElement('canvas'); full.width = W; full.height = H;
+        const frame = bgData && bgData.frames[cur.fi % bgData.frames.length];
+        renderCard(full.getContext('2d'), W, H, frame ? frame.canvas : null, d, Object.assign({}, o, { progress: 1, pop: 0 }));
+        url = full.toDataURL('image/png');
+      } catch (err) { return shareFail('Making the image', err); }
       if (a.dataset.act === 'copy') copyPng(url);
       else if (a.dataset.act === 'airdrop') airdrop(`${fname}.png`, url.split(',')[1], 'image/png');
       else saveBytes(`${fname}.png`, url.split(',')[1], 'image/png');

@@ -83,16 +83,34 @@ ipcMain.handle('file:saveAs', async (e, defaultName, content) => {
   return r.filePath;
 });
 
+function shareLog(what, err) {
+  try { fs.appendFileSync(path.join(DATA_DIR, 'share-errors.log'), `${new Date().toISOString()} ${process.platform} ${app.getVersion()} ${what}: ${err && err.stack || err}\n`); } catch (e) {}
+}
+function uniqueDownload(name) {
+  const dir = app.getPath('downloads'), ext = path.extname(name), base = path.basename(name, ext);
+  let p = path.join(dir, name), i = 2;
+  while (fs.existsSync(p)) p = path.join(dir, `${base}-${i++}${ext}`);
+  return p;
+}
 ipcMain.handle('file:saveBinary', async (e, defaultName, b64) => {
-  const win = BrowserWindow.fromWebContents(e.sender);
-  const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('downloads'), defaultName) });
+  const buf = Buffer.from(b64, 'base64');
+  let r;
+  try {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('downloads'), path.basename(defaultName)) });
+  } catch (err) {
+    shareLog('save dialog', err);
+    const p = uniqueDownload(path.basename(defaultName)); fs.writeFileSync(p, buf); return p;
+  }
   if (r.canceled || !r.filePath) return false;
-  fs.writeFileSync(r.filePath, Buffer.from(b64, 'base64'));
-  return r.filePath;
+  try { fs.writeFileSync(r.filePath, buf); return r.filePath; }
+  catch (err) { shareLog('save write', err); const p = uniqueDownload(path.basename(defaultName)); fs.writeFileSync(p, buf); return p; }
 });
 
 ipcMain.handle('clip:image', (_e, dataUrl) => {
-  clipboard.writeImage(nativeImage.createFromDataURL(dataUrl));
+  const img = nativeImage.createFromDataURL(dataUrl);
+  if (img.isEmpty()) { shareLog('clipboard', 'empty image'); throw new Error('the card image came out empty'); }
+  try { clipboard.writeImage(img); } catch (err) { shareLog('clipboard', err); throw err; }
   return true;
 });
 
@@ -103,10 +121,15 @@ ipcMain.handle('share:file', (e, name, b64) => {
   const file = path.join(dir, path.basename(name));
   fs.writeFileSync(file, Buffer.from(b64, 'base64'));
   if (process.platform !== 'darwin') { shell.showItemInFolder(file); return 'folder'; }
-  const { ShareMenu } = require('electron');
-  const win = BrowserWindow.fromWebContents(e.sender);
-  new ShareMenu({ filePaths: [file] }).popup({ window: win });
-  return 'menu';
+  try {
+    const { ShareMenu } = require('electron');
+    const win = BrowserWindow.fromWebContents(e.sender);
+    new ShareMenu({ filePaths: [file] }).popup({ window: win });
+    return 'menu';
+  } catch (err) {
+    shareLog('share menu', err);
+    shell.showItemInFolder(file); return 'folder';
+  }
 });
 
 ipcMain.handle('pdf:save', async (e, defaultName, html) => {

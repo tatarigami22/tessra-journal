@@ -4,7 +4,7 @@ A Discord bot that answers in **#help** and **#bug-reports** using Claude (Haiku
 
 - Every new post gets its own thread with an answer based on the Tessra README and `knowledge.md`.
 - In #bug-reports it asks for the version, computer and steps, then logs the report to **#mod-log**.
-- When it can't help, it pings **@Mod** in the thread. Once an Owner or Mod replies in a thread, the bot stays out of it.
+- When it can't help, it pings **@Mod** in the thread. Once an Owner or Mod replies in a thread, the bot stays out of it. Owners and Mods can @mention it to get an answer anyway (for testing, or to bring it back into a thread).
 - Posts a daily digest of bugs and escalations to #mod-log at 9 PM New York.
 - It can't ping @everyone or @here, and it only knows about Tessra. It has no access to GitHub, computers or anything else.
 - Limits: 6 replies per person per 10 minutes, 300 replies per day.

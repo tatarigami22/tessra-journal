@@ -83,6 +83,14 @@ const show = (title) => { console.log(`\n=== ${title}`); for (const s of sent.sp
   show('4. A Mod replies, then the user (bot should stay quiet)');
   assert.strictEqual(calls.length, 3);
 
+  // 4b. Owner @mentions the bot -> it answers again
+  replies.push('Sure! Since 1.1.1 Tessra updates itself when you open it.');
+  const om = userSays(help, 'tatarigami', '<@bot1> how do updates work?', { roles: [roles.owner] });
+  om.mentions.users.set(BOT, {});
+  await support.onMessage(om, ctx);
+  show('4b. Owner @mentions the bot to test it (it answers)');
+  assert.strictEqual(calls.length, 4);
+
   // 5. bug report flow
   replies.push('Sorry about that! Which Tessra version are you on, and is it a Mac with Apple Silicon, an Intel Mac or Windows? A screenshot would help too.');
   const b1 = userSays(bugs, 'nqscalper', 'calendar shows my trade on the wrong day');
@@ -94,7 +102,7 @@ const show = (title) => { console.log(`\n=== ${title}`); for (const s of sent.sp
   // 6. other channels ignored
   await support.onMessage(userSays(general, 'someone', 'gm'), ctx);
   show('6. Message in #general (ignored)');
-  assert.strictEqual(calls.length, 5);
+  assert.strictEqual(calls.length, 6);
 
   // 7. trying to make the bot ping everyone: Discord gets parse: [] so nothing pings
   replies.push('@everyone I only help with Tessra here.');

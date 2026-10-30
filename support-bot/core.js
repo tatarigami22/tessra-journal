@@ -190,8 +190,10 @@ function createSupport({ llm, cfg = config(), knowledge, now = () => new Date(),
     const kind = /bug/.test(base.name) ? 'bug' : 'help';
     const botId = ctx.botId;
 
-    if (isStaff(m.member)) { if (inThread) handoff.add(ch.id); return; }
     const mentioned = m.mentions && m.mentions.users && m.mentions.users.has(botId);
+    // Owner and Mods: the bot steps back once they reply, unless they @mention it (handy for testing or pulling it back in).
+    if (isStaff(m.member) && !mentioned) { if (inThread) handoff.add(ch.id); return; }
+    if (inThread && mentioned) handoff.delete(ch.id);
     if (inThread && handoff.has(ch.id) && !mentioned) return;
 
     rollDay();

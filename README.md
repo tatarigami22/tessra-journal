@@ -53,6 +53,13 @@ Not sure which Mac you have? Apple menu > About This Mac. "Chip: Apple M..." mea
 - **Copy trading**: tick the other accounts a trade was copied to; each account keeps its own balance and payouts, stats count it once in All accounts view, and edits sync across copies.
 - **Daily lock**: hit your daily max loss (or optional profit target / max trades) and the app says you're done for the day; later trades get tagged "Traded after lock".
 - **Tax records**: yearly payouts, split, expenses and live account P&L as a PDF or CSV (Accounts or Settings).
+- **Appearance**: 7 styles (Classic, Ledger, Terminal, Backdrop, Field, Midnight, Chrome) and 22 backgrounds (landscapes, light beams, drips, liquid chrome, marble, lava, holo and more), or use your own image or GIF. Darken and blur sliders keep numbers readable.
+- **Prop firm presets**: pick Topstep, Apex, Lucid, Tradeify, Take Profit Trader or MyFundedFutures plus your plan and size, and the account fills in its target, drawdown, daily loss limit, consistency rule and payout rules. Rules are from public summaries (October 2026) and stay editable, so check your firm's site.
+- **Consistency tracker**: shows your best day as a share of profit for each account with a consistency rule, and how much more you can make today before breaking it (Accounts page, dashboard and menu bar).
+- **Broker imports**: Tradovate, NinjaTrader, Rithmic R|Trader (fills are paired into trades), ProjectX / TopstepX, Quantower and Sierra Chart files are recognized automatically. Anything else: match the columns once in the import window.
+- **First-run setup**: new users pick their firm, account and instruments in about a minute.
+- **Pre-trade checklist**: optional. New Trade asks you to tick your checklist and the setup's rules first; skipping tags the trade so you can see what skipping costs.
+- **Menu bar (Mac) / system tray (Windows)**: today's P&L, loss room, trades left and consistency headroom, plus a New trade shortcut.
 - **Settings**: risk rules, contract specs (point value and fees), tags, mistakes, CSV import, backups.
 
 ## Tips
@@ -60,7 +67,7 @@ Not sure which Mac you have? Apple menu > About This Mac. "Chip: Apple M..." mea
 - On Windows use Ctrl wherever you see ⌘.
 - ⌘N new trade, ⌘1 to ⌘9 switch pages, Esc closes panels.
 - Paste a screenshot straight from TradingView with ⌘V into an open trade or journal day.
-- Import from Tradovate: Account Reports, Performance tab, export CSV, then Import in the app. Re-importing the same file skips trades you already have.
+- Import: export trades from your platform as CSV, then Settings > Import CSV. Re-importing the same file skips trades you already have. If a format doesn't work, use Report a problem in Settings and attach a sample.
 - Fees default from Settings > Contract specs (per contract, round trip). Change them to match your firm.
 - Settings has "Load demo data" to explore and "Remove demo data" to clear it without touching your own trades.
 

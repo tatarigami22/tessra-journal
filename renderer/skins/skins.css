@@ -127,3 +127,4 @@ html[data-skin] .ring::after { background:var(--panel); }
 .bg-sw.pat-dots { background-color:#0a0a09; background-image:radial-gradient(rgba(255,176,0,.45) 1px,transparent 1px); background-size:9px 9px; }
 .bg-sw.pat-none { background:var(--bg); } .bg-sw.add { border-style:dashed; display:grid; place-items:center; color:var(--muted); background:transparent; }
 .range-row { display:flex; align-items:center; gap:12px; font-size:12.5px; color:var(--muted); } .range-row input { flex:1; max-width:260px; }
+a.btn { text-decoration: none; }

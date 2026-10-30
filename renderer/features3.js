@@ -374,7 +374,7 @@ function openSetupWizard() {
   const w = { step: 1, name: S.state.settings.name || '', firm: '', plan: '', size: '', own: false, inst: new Set(S.state.settings.instruments || ['MNQ']) };
   const firms = [...new Set(FIRM_PRESETS.map(p => p.firm))];
   const m = openModal('<div id="wiz"></div>', { size: 'sm', sticky: true });
-  const finish = () => { S.state.settings.onboarded = true; S.save(); closeModal(m); render(); };
+  const finish = () => { S.state.settings.onboarded = true; S.save(); closeModal(m); render(); setTimeout(maybeCommunityPrompt, 1500); };
   const draw = () => {
     const dots = [1, 2, 3, 4].map(i => `<span style="width:${i === w.step ? 18 : 6}px;height:6px;border-radius:3px;background:${i <= w.step ? 'var(--accent)' : 'var(--line-2)'};display:inline-block;transition:width .2s"></span>`).join(' ');
     let body = '', next = 'Next';
@@ -518,11 +518,11 @@ function menuBarSettingsHtml() {
 /* ===================== COMMUNITY POP-UP ===================== */
 function maybeCommunityPrompt() {
   if (!DISCORD_URL) return;
-  const ver = (S.info() && S.info().version) || '';
+  const ver = (S.info() && S.info().version) || 'web';
   const s = S.state.settings;
   if (s.communitySeen === ver) return;
+  if (document.querySelector('.overlay')) { clearTimeout(maybeCommunityPrompt._t); maybeCommunityPrompt._t = setTimeout(maybeCommunityPrompt, 4000); return; }
   s.communitySeen = ver; S.save();
-  if (document.querySelector('.overlay')) return;
   const m = openModal(`<div class="modal-b" style="text-align:center;padding:28px 26px 8px">
       <img src="brand/mark.png" width="56" height="56" style="border-radius:14px">
       <h3 style="margin:14px 0 6px;font-size:18px">Join the Discord</h3>

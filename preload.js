@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('edge', {
   savePdf: (name, html) => ipcRenderer.invoke('pdf:save', name, html),
   platform: process.platform,
   checkUpdate: () => ipcRenderer.invoke('app:checkUpdate'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
+  onUpdateProgress: fn => ipcRenderer.on('update:progress', (_e, p) => fn(p)),
   openUrl: url => ipcRenderer.invoke('app:openUrl', url),
   trayUpdate: p => ipcRenderer.invoke('tray:update', p),
   onTrayNewTrade: fn => ipcRenderer.on('tray:newTrade', () => fn())

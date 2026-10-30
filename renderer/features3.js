@@ -36,7 +36,8 @@ function applyAppearance() {
   if (l.skin === 'classic') delete root.dataset.skin; else root.dataset.skin = l.skin;
   root.dataset.theme = l.skin === 'ledger' ? 'light' : l.skin === 'classic' ? (S.state.settings.theme || 'dark') : 'dark';
   const bg = effectiveBg(l), isImg = !PATTERN_BGS.includes(bg);
-  if (bg === 'none') delete root.dataset.bg; else root.dataset.bg = bg;
+  delete root.dataset.bg; // older builds used this name, it clashed with the share window
+  if (bg === 'none') delete root.dataset.wallpaper; else root.dataset.wallpaper = bg;
   if (isImg) root.dataset.bgimg = '1'; else delete root.dataset.bgimg;
   if (bg === 'custom') root.style.setProperty('--custom-bg', `url("${S.imageSrc(l.custom)}")`);
   root.style.setProperty('--bg-dim', isImg ? lookDim(l) / 100 : 0);
@@ -540,3 +541,53 @@ loadDemo = async function (...args) {
   if (w) { S.state.settings.onboarded = true; closeModal(w.closest('.modal')); }
   return __loadDemo.apply(this, args);
 };
+
+/* ===================== TRADING DAY TIME ZONE ===================== */
+document.addEventListener('change', e => {
+  if (!(e.target.matches && e.target.matches('[data-daytz]'))) return;
+  S.state.settings.dayTz = e.target.value; S.save();
+  ui.calMonth = todayKey().slice(0, 7); ui.journalDay = todayKey(); if (typeof weekStartKey === 'function') ui.week = weekStartKey(todayKey());
+  render(true); toast(e.target.value === 'local' ? 'Days follow your computer\'s time zone' : 'Days now follow ' + e.target.selectedOptions[0].textContent.split(' (')[0]);
+});
+
+/* ===================== UPDATES ===================== */
+let pendingUpdate = null;
+async function checkForUpdates() {
+  if (!window.edge || !window.edge.checkUpdate) return;
+  let u = null; try { u = await window.edge.checkUpdate(); } catch (e) {}
+  if (!u) return;
+  pendingUpdate = u;
+  const bar = document.getElementById('updateBar');
+  bar.innerHTML = `<button class="update-bar"><b>Update available</b><span>Tessra ${esc(u.version)} is out. ${u.canAuto ? 'Click to update.' : 'Click to download.'}</span></button>`;
+  bar.firstChild.onclick = () => openUpdatePrompt(u);
+  const tryShow = () => { if (document.querySelector('.overlay')) return setTimeout(tryShow, 3000); openUpdatePrompt(u); };
+  tryShow();
+}
+function openUpdatePrompt(u) {
+  if (document.getElementById('updModal')) return;
+  const m = openModal(`<div id="updModal"><div class="modal-b" style="text-align:center;padding:28px 26px 10px">
+      <img src="brand/mark.png" width="56" height="56" style="border-radius:14px">
+      <h3 style="margin:14px 0 6px;font-size:18px">A new update is available</h3>
+      <div class="muted" style="font-size:13.5px">Tessra ${esc(u.version)} is out. Would you like to update now?</div>
+      <div id="updStatus" style="margin-top:14px;font-size:12.5px" class="faint">${u.canAuto ? 'Tessra will download the update, install it and restart. Your trades and settings are kept.' : `Automatic updating isn't available here (${esc(u.why || 'unknown reason')}), so this opens the download page.`}</div>
+      <div class="progress" id="updProg" style="margin-top:12px;display:none"><div style="width:0%"></div></div>
+      <div style="margin-top:10px;font-size:12px"><a href="${esc(u.url)}" target="_blank" rel="noopener" style="color:var(--accent-2)">See what's new</a></div></div>
+    <div class="modal-f"><button class="btn ghost" data-u="later">Maybe later</button><button class="btn primary" data-u="yes">${u.canAuto ? 'Yes, update now' : 'Open download page'}</button></div></div>`, { size: 'sm' });
+  const status = m.querySelector('#updStatus'), prog = m.querySelector('#updProg'), yes = m.querySelector('[data-u=yes]'), later = m.querySelector('[data-u=later]');
+  later.onclick = () => closeModal(m);
+  yes.onclick = async () => {
+    if (!u.canAuto) { window.edge.openUrl(u.url); return closeModal(m); }
+    yes.disabled = true; later.disabled = true; prog.style.display = ''; status.className = ''; status.textContent = 'Downloading...';
+    window.edge.onUpdateProgress(({ stage, p }) => {
+      if (stage === 'download') { prog.firstElementChild.style.width = Math.round(p * 100) + '%'; status.textContent = `Downloading ${Math.round(p * 100)}%`; }
+      if (stage === 'install') { prog.firstElementChild.style.width = '100%'; status.textContent = 'Installing. Tessra will close and reopen in a few seconds.'; }
+    });
+    try { await S.flush(); } catch (e) {}
+    const r = await window.edge.installUpdate();
+    if (!r || !r.ok) {
+      status.className = 'neg'; status.textContent = `Update failed: ${(r && r.error) || 'unknown error'}. You can download it manually instead.`;
+      prog.style.display = 'none'; later.disabled = false; yes.disabled = false; yes.textContent = 'Open download page';
+      yes.onclick = () => { window.edge.openUrl((r && r.url) || u.url); closeModal(m); };
+    }
+  };
+}

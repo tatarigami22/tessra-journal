@@ -22,31 +22,31 @@
 .app { position: relative; isolation: isolate; background-color: var(--bg); background-size: cover; background-position: center; background-repeat: no-repeat; }
 .app::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,var(--bg-dim)); pointer-events: none; z-index: 0; }
 .app > .sidebar, .app > .main { position: relative; z-index: 1; }
-html[data-bg=paper] .app { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); background-size: auto; }
-html[data-bg=grid] .app { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"), linear-gradient(color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1px); background-size: auto, 22px 22px, 22px 22px; }
-html[data-bg=dots] .app { background-image: radial-gradient(color-mix(in srgb, var(--accent) 22%, transparent) 1px, transparent 1px); background-size: 18px 18px; }
-html[data-bg=ridge] .app { background-image: url(bg/ridge.jpg); }
-html[data-bg=desert] .app { background-image: url(bg/desert.jpg); }
-html[data-bg=fog] .app { background-image: url(bg/fog.jpg); }
-html[data-bg=beam] .app { background-image: url(bg/beam.jpg); }
-html[data-bg=silk] .app { background-image: url(bg/silk.jpg); }
-html[data-bg=aurora] .app { background-image: url(bg/aurora.jpg); }
-html[data-bg=horizon] .app { background-image: url(bg/horizon.jpg); }
-html[data-bg=gridfloor] .app { background-image: url(bg/gridfloor.jpg); }
-html[data-bg=lines] .app { background-image: url(bg/lines.jpg); }
-html[data-bg=drip] .app { background-image: url(bg/drip.jpg); }
-html[data-bg=drip-chrome] .app { background-image: url(bg/drip-chrome.jpg); }
-html[data-bg=chrome-liquid] .app { background-image: url(bg/chrome-liquid.jpg); }
-html[data-bg=marble] .app { background-image: url(bg/marble.jpg); }
-html[data-bg=lava] .app { background-image: url(bg/lava.jpg); }
-html[data-bg=stripes] .app { background-image: url(bg/stripes.jpg); }
-html[data-bg=holo] .app { background-image: url(bg/holo.jpg); }
-html[data-bg=ripple] .app { background-image: url(bg/ripple.jpg); }
-html[data-bg=smoke] .app { background-image: url(bg/smoke.jpg); }
-html[data-bg=topo] .app { background-image: url(bg/topo.jpg); }
-html[data-bg=horizon] .app { background-position: center bottom; }
-html[data-bg=beam] .app, html[data-bg=drip] .app, html[data-bg=drip-chrome] .app { background-position: center top; }
-html[data-bg=custom] .app { background-image: var(--custom-bg); }
+html[data-wallpaper=paper] .app { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); background-size: auto; }
+html[data-wallpaper=grid] .app { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"), linear-gradient(color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1px); background-size: auto, 22px 22px, 22px 22px; }
+html[data-wallpaper=dots] .app { background-image: radial-gradient(color-mix(in srgb, var(--accent) 22%, transparent) 1px, transparent 1px); background-size: 18px 18px; }
+html[data-wallpaper=ridge] .app { background-image: url(bg/ridge.jpg); }
+html[data-wallpaper=desert] .app { background-image: url(bg/desert.jpg); }
+html[data-wallpaper=fog] .app { background-image: url(bg/fog.jpg); }
+html[data-wallpaper=beam] .app { background-image: url(bg/beam.jpg); }
+html[data-wallpaper=silk] .app { background-image: url(bg/silk.jpg); }
+html[data-wallpaper=aurora] .app { background-image: url(bg/aurora.jpg); }
+html[data-wallpaper=horizon] .app { background-image: url(bg/horizon.jpg); }
+html[data-wallpaper=gridfloor] .app { background-image: url(bg/gridfloor.jpg); }
+html[data-wallpaper=lines] .app { background-image: url(bg/lines.jpg); }
+html[data-wallpaper=drip] .app { background-image: url(bg/drip.jpg); }
+html[data-wallpaper=drip-chrome] .app { background-image: url(bg/drip-chrome.jpg); }
+html[data-wallpaper=chrome-liquid] .app { background-image: url(bg/chrome-liquid.jpg); }
+html[data-wallpaper=marble] .app { background-image: url(bg/marble.jpg); }
+html[data-wallpaper=lava] .app { background-image: url(bg/lava.jpg); }
+html[data-wallpaper=stripes] .app { background-image: url(bg/stripes.jpg); }
+html[data-wallpaper=holo] .app { background-image: url(bg/holo.jpg); }
+html[data-wallpaper=ripple] .app { background-image: url(bg/ripple.jpg); }
+html[data-wallpaper=smoke] .app { background-image: url(bg/smoke.jpg); }
+html[data-wallpaper=topo] .app { background-image: url(bg/topo.jpg); }
+html[data-wallpaper=horizon] .app { background-position: center bottom; }
+html[data-wallpaper=beam] .app, html[data-wallpaper=drip] .app, html[data-wallpaper=drip-chrome] .app { background-position: center top; }
+html[data-wallpaper=custom] .app { background-image: var(--custom-bg); }
 /* with a picture behind, panels go slightly see-through */
 html[data-bgimg] .sidebar { background: color-mix(in srgb, var(--side) 62%, transparent); backdrop-filter: blur(calc(var(--panel-blur) + 8px)); }
 html[data-bgimg] .card, html[data-bgimg] .stat-grid { background: color-mix(in srgb, var(--panel) 80%, transparent); backdrop-filter: blur(var(--panel-blur)); }

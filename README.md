@@ -27,7 +27,7 @@ Not sure which Mac you have? Apple menu > About This Mac. "Chip: Apple M..." mea
 
 **Windows:** run the installer. If SmartScreen says "Windows protected your PC", click **More info > Run anyway**.
 
-**Updates:** Tessra checks for a new release when it opens and shows an "Update available" button in the sidebar. Download the new version and install it over the old one. Your data is kept.
+**Updates:** from version 1.1.1, Tessra checks for a new release when it opens and asks "Would you like to update now?". Click yes and it downloads, installs and restarts by itself. Your data is kept. (On Mac, keep Tessra in your Applications folder so it can replace itself.)
 
 ## Screenshots
 
@@ -49,6 +49,8 @@ Not sure which Mac you have? Apple menu > About This Mac. "Chip: Apple M..." mea
 - **Playbook**: your setups with rules. Rules become a checklist on every trade.
 - **Screenshots**: gallery of every chart you saved.
 - **Accounts**: prop evals and funded accounts with profit target progress, trailing drawdown room, daily loss limit, payouts, and a "trading business" net (payouts minus eval costs). Payout Planner tracks each funded account's profit days, withdrawable amount, your split and an estimated payout date (LucidFlex presets included).
+- **Share cards**: trades, days, weeks (Weekly Review or the share icon on any calendar week) and months.
+- **Time zone**: Settings > Profile lets days follow New York time, so traders in Asia or Europe keep a whole session on one day.
 - **Share cards**: open any trade, day, or month (Monthly Recap from the Calendar) and click Share. Pick size, headline ($, R, points, % of account), font and background, then AirDrop it to your phone, copy it, or save a PNG or animated GIF. Add your own image and GIF backgrounds in Settings > Share cards and tag them Wins, Losses or Any.
 - **Copy trading**: tick the other accounts a trade was copied to; each account keeps its own balance and payouts, stats count it once in All accounts view, and edits sync across copies.
 - **Daily lock**: hit your daily max loss (or optional profit target / max trades) and the app says you're done for the day; later trades get tagged "Traded after lock".

@@ -174,6 +174,35 @@ const Share = (() => {
     };
   }
 
+  function weekData(ws, o) {
+    const d0 = parseKey(ws), d6 = parseKey(ws); d6.setDate(d6.getDate() + 6);
+    const we = keyOf(d6);
+    const ts = S.sortTrades(trades().filter(t => { const k = S.dayOf(t); return k >= ws && k <= we; })), s = S.summary(ts);
+    const days = Object.values(S.byDay(ts)).sort((a, b) => a.date.localeCompare(b.date));
+    let metric = o.metric === 'r' || (o.hideDollars && s.rCount) ? 'r' : 'usd';
+    if (metric === 'r' && !s.rCount) metric = 'usd';
+    const head = metric === 'r' ? (rr(s.rSum) || '0.00R') : usd(s.net);
+    const green = days.filter(d => d.pnl > 0).length;
+    const best = days.reduce((a, d) => !a || d.pnl > a.pnl ? d : a, null);
+    const md = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    let eq = 0; const curve = [0].concat(days.map(d => (eq += metric === 'r' ? d.trades.reduce((a, t) => a + (S.rMultiple(t) || 0), 0) : d.pnl)));
+    return {
+      subtitle: `WEEKLY RECAP · ${ws.slice(0, 4)}`,
+      kind: 'week', seed: ws, result: s.net > 0.004 ? 'win' : s.net < -0.004 ? 'loss' : 'be',
+      title: `${md(d0)} to ${md(d6)}`, chips: [{ t: 'WEEKLY RECAP', c: '#a597ff' }],
+      headline: head, headNum: metric === 'r' ? s.rSum : s.net, headFmt: metric === 'r' ? rr : usd,
+      sub: [metric !== 'r' && s.rCount ? rr(s.rSum) : null, metric === 'r' && !o.hideDollars ? usd(s.net) : null, `${s.count} trades`, `${pct(s.winRate, 0)} win`].filter(Boolean).join('   ·   '),
+      curve, dots: days.map(d => d.pnl > 0 ? 'win' : d.pnl < 0 ? 'loss' : 'be'),
+      stats: [
+        { k: 'WIN RATE', v: s.count ? pct(s.winRate, 0) : '-' },
+        { k: 'TRADES', v: String(s.count) },
+        { k: 'GREEN DAYS', v: `${green}/${days.length}` },
+        o.hideDollars ? { k: 'AVG R', v: rr(s.avgR) || '-' } : { k: 'BEST DAY', v: best ? usd(best.pnl) : '-' }
+      ],
+      meta: best ? `Best day ${fmtDay(best.date)}  ·  ${days.length} trading days` : ''
+    };
+  }
+
   function monthData(ym, o) {
     const ts = S.sortTrades(trades().filter(t => S.dayOf(t).startsWith(ym))), s = S.summary(ts);
     const days = Object.values(S.byDay(ts)).sort((a, b) => a.date.localeCompare(b.date));
@@ -544,7 +573,7 @@ const Share = (() => {
     if (c0.avatar) { try { o.avatarImg = await loadImg(await S.readImage(c0.avatar)); } catch (e) {} }
     if (c0.hideDollars) o.hideDollars = true;
     let choice = 'auto', bgData = null, timer = null, tl = [{ fi: 0, progress: 1, pop: 0, delay: 0 }], ti = 0, cur = tl[0], busy = false;
-    const getData = () => kind === 'trade' ? tradeData(S.state.trades.find(t => t.id === ref), o) : kind === 'month' ? monthData(ref, o) : dayData(ref, o);
+    const getData = () => kind === 'trade' ? tradeData(S.state.trades.find(t => t.id === ref), o) : kind === 'month' ? monthData(ref, o) : kind === 'week' ? weekData(ref, o) : dayData(ref, o);
     const t = kind === 'trade' ? S.state.trades.find(x => x.id === ref) : null;
     const hasAcc = t && accountById(t.accountId) && Number(accountById(t.accountId).startBalance);
     const metricOpts = kind === 'trade' ? [['usd', '$ P&L'], ['r', 'R'], ['pts', 'Points']].concat(hasAcc ? [['pct', '% acct']] : []) : [['usd', '$ P&L'], ['r', 'R']];
@@ -553,7 +582,7 @@ const Share = (() => {
       .concat(cfg().backgrounds.map(b => `<button class="bg-thumb ${choice === 'u:' + b.id ? 'on' : ''}" data-bg="u:${b.id}" title="${esc(b.use === 'any' ? 'Any trade' : b.use === 'win' ? 'Wins' : 'Losses')}"><img src="${S.imageSrc(b.file)}" alt="">${b.kind === 'gif' ? '<i>GIF</i>' : ''}</button>`))
       .concat([`<button class="bg-thumb add" data-bg="add" title="Upload image or GIF">${ICON.plus}</button>`]).join('');
     const segH = (key, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-o="${key}" data-v="${v}" class="${String(o[key]) === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
-    const m = openModal(`<div class="modal-h"><h3>Share ${kind === 'trade' ? 'trade' : kind === 'month' ? 'monthly recap' : 'day'}</h3><button class="btn icon ghost" data-close>${ICON.close}</button></div>
+    const m = openModal(`<div class="modal-h"><h3>Share ${kind === 'trade' ? 'trade' : kind === 'month' ? 'monthly recap' : kind === 'week' ? 'weekly recap' : 'day'}</h3><button class="btn icon ghost" data-close>${ICON.close}</button></div>
       <div class="share-wrap">
         <div class="share-left"><div class="share-stage"><canvas id="shareCv"></canvas></div>
           <div class="share-actions">
@@ -618,7 +647,7 @@ const Share = (() => {
     m.addEventListener('click', async e => {
       const ob = e.target.closest('[data-o]');
       if (ob) { o[ob.dataset.o] = ob.dataset.v; ob.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === ob)); rememberOpts(); restart(); return; }
-      const bb = e.target.closest('[data-bg]');
+      const bb = e.target.closest('.bg-thumb[data-bg]');
       if (bb) {
         if (bb.dataset.bg === 'add') {
           const added = await pickBackgrounds();
@@ -632,7 +661,7 @@ const Share = (() => {
       if (!a || busy) return;
       let W, H, d;
       try { [W, H] = SIZES[o.size] || SIZES.banner; d = getData(); } catch (err) { return shareFail('Share', err); }
-      const fname = (kind === 'trade' ? `${d.title}-${S.dayOf(t)}` : kind === 'month' ? `recap-${ref}` : `day-${ref}`).replace(/[^\w-]+/g, '_');
+      const fname = (kind === 'trade' ? `${d.title}-${S.dayOf(t)}` : kind === 'month' ? `recap-${ref}` : kind === 'week' ? `week-${ref}` : `day-${ref}`).replace(/[^\w-]+/g, '_');
       if (a.dataset.act === 'gif' || (a.dataset.act === 'airdrop' && isAnimated())) {
         busy = true; const lbl = a.innerHTML;
         try {
@@ -685,5 +714,5 @@ const Share = (() => {
     cfg().backgrounds = cfg().backgrounds.filter(x => x.id !== id); S.save();
   }
 
-  return { open, monthData, buildTimeline, buildGif, renderCard, tradeData, dayData, addBackgroundFiles, pickBackgrounds, removeBackground, loadBackground, SIZES, FONTS, fontsReady };
+  return { open, monthData, weekData, buildTimeline, buildGif, renderCard, tradeData, dayData, addBackgroundFiles, pickBackgrounds, removeBackground, loadBackground, SIZES, FONTS, fontsReady };
 })();

@@ -254,10 +254,12 @@ function pageSettings() {
     z.addEventListener('drop', e => { e.preventDefault(); z.classList.remove('over'); add(e.dataTransfer.files); });
   });
   return `<div class="card" style="padding:4px 24px">
-    <div class="settings-sec"><div><h3>Profile</h3><p>How the app greets you.</p></div>
-      <div class="grid g-3"><div class="field"><label>Your name</label><input class="input" data-setting="name" value="${esc(st.settings.name || '')}"></div>
+    <div class="settings-sec"><div><h3>Profile</h3><p>Your name, week start and which time zone decides a trade's day.</p></div>
+      <div><div class="grid g-3"><div class="field"><label>Your name</label><input class="input" data-setting="name" value="${esc(st.settings.name || '')}"></div>
         <div class="field"><label>Week starts on</label>${seg('week-start', [['0', 'Sunday'], ['1', 'Monday']], String(st.settings.weekStart || 0))}</div>
-        <div class="field"><label>First-run setup</label><button class="btn" data-action="run-setup">${ICON.spark}Run setup again</button></div></div></div>
+        <div class="field"><label>First-run setup</label><button class="btn" data-action="run-setup">${ICON.spark}Run setup again</button></div></div>
+      <div class="grid g-3 mt"><div class="field" style="grid-column:span 2"><label>Count trades toward the day in</label><select class="select" data-daytz>${[['local', 'My computer\'s time zone'], ['America/New_York', 'New York time (market time, keeps a whole session on one day)'], ['America/Chicago', 'Chicago time (CME)'], ['Europe/London', 'London time']].map(([v, l]) => `<option value="${v}" ${(st.settings.dayTz || 'local') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <span class="hint">Trading from Asia or Europe? Pick New York so a Friday session stays on Friday in the calendar, stats and daily limits. Times you enter and see stay in your computer's time.</span></div></div></div></div>
     ${appearanceSettingsHtml()}
     <div class="settings-sec"><div><h3>Risk rules</h3><p>Shown on the dashboard. You get warned as you approach them.</p></div>
       <div class="grid g-3">${gi('dailyMaxLoss', 'Daily max loss ($)', 'Stop trading for the day')}${gi('dailyTarget', 'Daily profit target ($)', 'Consider stopping when hit')}${gi('weeklyTarget', 'Weekly target ($)', 'Used for weekly progress')}

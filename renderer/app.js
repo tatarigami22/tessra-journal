@@ -72,6 +72,7 @@ const ACTIONS = {
   'delete-trade': el => deleteTrade(el.dataset.id),
   'share-trade': el => Share.open('trade', el.dataset.id),
   'share-day': el => Share.open('day', el.dataset.date),
+  'share-week': el => Share.open('week', el.dataset.ws || weekStartKey(todayKey())),
   'share-month': el => Share.open('month', el.dataset.ym || ui.calMonth || todayKey().slice(0, 7)),
   'wk-prev': () => { ui.week = shiftWeek(ui.week, -1); render(); },
   'wk-next': () => { ui.week = shiftWeek(ui.week, 1); render(); },
@@ -214,12 +215,5 @@ window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTi
   setTimeout(() => { if (needsSetup()) openSetupWizard(); else { badgeNotify(); showLockScreen(); setTimeout(maybeCommunityPrompt, 600); } }, 400);
   S.onChange(syncMenuBar); syncMenuBar(); setInterval(syncMenuBar, 60000);
   if (window.edge && window.edge.onTrayNewTrade) window.edge.onTrayNewTrade(() => newTradeGate(x => openTradeModal(null, x || {})));
-  setTimeout(async () => {
-    if (!window.edge || !window.edge.checkUpdate) return;
-    const u = await window.edge.checkUpdate();
-    if (!u) return;
-    const bar = document.getElementById('updateBar');
-    bar.innerHTML = `<button class="update-bar"><b>Update available</b><span>Tessra ${esc(u.version)} is out. Click to download.</span></button>`;
-    bar.firstChild.onclick = () => window.edge.openUrl(u.url);
-  }, 3000);
+  setTimeout(checkForUpdates, 3000);
 })();

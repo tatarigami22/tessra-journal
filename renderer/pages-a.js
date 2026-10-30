@@ -300,7 +300,8 @@ function pageCalendar() {
       </div>`;
       cur.setDate(cur.getDate() + 1);
     }
-    cells += `<div class="cal-week"><div class="wl">Week ${weekNo}</div><div class="wv ${cls(wP)}">${wD ? money(wP) : '-'}</div><div class="wm">${wD ? `${wD} day${wD === 1 ? '' : 's'} · ${wT} trades` : 'No trades'}</div></div>`;
+    const wsk = (() => { const d = new Date(cur); d.setDate(d.getDate() - 7); return keyOf(d); })();
+    cells += `<div class="cal-week"><div class="wl between">Week ${weekNo}${wD ? `<button class="btn icon ghost sm" data-action="share-week" data-ws="${wsk}" title="Share weekly recap" style="padding:2px;margin:-4px -6px -4px 0">${ICON.share}</button>` : ''}</div><div class="wv ${cls(wP)}">${wD ? money(wP) : '-'}</div><div class="wm">${wD ? `${wD} day${wD === 1 ? '' : 's'} · ${wT} trades` : 'No trades'}</div></div>`;
   } while (cur.getMonth() === m - 1 && cur.getFullYear() === y);
   return head + `<div class="card flush" style="margin-bottom:16px"><div class="summary-strip" style="border:0">
       <div><div class="k">Month P&L</div><div class="v ${cls(mTot)}">${money(mTot)}</div></div>

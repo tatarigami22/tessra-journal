@@ -1,7 +1,7 @@
 {
   "name": "tessra",
   "productName": "Tessra",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Tessra: a desktop trading journal for futures and prop firm traders",
   "main": "main.js",
   "author": "Ethan",
@@ -10,7 +10,7 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --mac --dir",
-    "dist:mac": "electron-builder --mac dmg --arm64 --publish never && electron-builder --mac dmg --x64 --publish never",
+    "dist:mac": "electron-builder --mac dmg zip --arm64 --publish never && electron-builder --mac dmg zip --x64 --publish never",
     "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {

@@ -57,6 +57,7 @@ jobs:
           name: installers-${{ matrix.os }}
           path: |
             dist/*.dmg
+            dist/*.zip
             dist/*.exe
           if-no-files-found: error
 
@@ -84,3 +85,5 @@ jobs:
 
             First launch on Mac: right click Tessra in Applications and choose Open (or System Settings > Privacy & Security > Open Anyway).
             First launch on Windows: if SmartScreen appears, click More info > Run anyway.
+
+            The .zip files are used by Tessra's built-in updater, you don't need to download them.

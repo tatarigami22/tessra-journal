@@ -150,7 +150,24 @@ const Store = (() => {
     const rk = Math.abs(t.entryPrice - t.stopPrice);
     return rk ? Math.abs(t.targetPrice - t.entryPrice) / rk : null;
   }
-  function dayOf(t) { return String(t.exitTime || t.entryTime || '').slice(0, 10); }
+  // Which calendar day a trade counts for. Times are stored in this computer's local time;
+  // with settings.dayTz set (for example America/New_York), days follow that timezone instead.
+  const tzFmt = {}, tzCache = new Map();
+  function tzKey(date, tz) {
+    const f = tzFmt[tz] || (tzFmt[tz] = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }));
+    return f.format(date);
+  }
+  function dayTz() { const z = state && state.settings && state.settings.dayTz; return z && z !== 'local' ? z : null; }
+  function dayOf(t) {
+    const s = String(t.exitTime || t.entryTime || '');
+    const tz = dayTz();
+    if (!tz || s.length < 16) return s.slice(0, 10);
+    const ck = tz + '|' + s;
+    let v = tzCache.get(ck);
+    if (v === undefined) { const d = new Date(s); v = isNaN(d) ? s.slice(0, 10) : tzKey(d, tz); if (tzCache.size > 50000) tzCache.clear(); tzCache.set(ck, v); }
+    return v;
+  }
+  function todayKey() { const tz = dayTz(); return tz ? tzKey(new Date(), tz) : localKey(new Date()); }
   function holdMinutes(t) {
     if (!t.entryTime || !t.exitTime) return null;
     const m = (new Date(t.exitTime) - new Date(t.entryTime)) / 60000;
@@ -237,7 +254,7 @@ const Store = (() => {
       if (acc.lockAtStart !== false) threshold = Math.min(threshold, start + Number(acc.lockOffset || 0));
     }
     const balance = bal - paid;
-    const today = localKey(new Date());
+    const today = todayKey();
     const todayPnl = days[today] ? days[today].pnl : 0;
     const target = Number(acc.profitTarget || 0);
     return {
@@ -252,7 +269,7 @@ const Store = (() => {
     get state() { return state; }, info: () => info, uid, load, save, flush,
     saveImage, imageSrc, readImage, deleteImage,
     rootOf, spec, fees, gross, pnl, points, risk, rMultiple, plannedR, dayOf, holdMinutes, result,
-    localKey, sortTrades, summary, byDay, equity, accountStatus, hasNum, defaults,
+    localKey, todayKey, sortTrades, summary, byDay, equity, accountStatus, hasNum, defaults,
     onChange: fn => listeners.push(fn),
     replaceState(s) { state = merge(defaults(), s); save(); }
   };

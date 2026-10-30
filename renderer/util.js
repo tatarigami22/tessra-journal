@@ -8,7 +8,7 @@ const ui = {
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const keyOf = d => S.localKey(d);
-const todayKey = () => keyOf(new Date());
+const todayKey = () => S.todayKey();
 const parseKey = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const money = (n, sign = true) => {
   n = Number(n) || 0;

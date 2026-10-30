@@ -185,7 +185,7 @@ function pageWeekly() {
       <h2 style="min-width:300px">${fmtDay(ws, { weekday: undefined })} to ${fmtDay(endShow, { weekday: undefined, year: 'numeric' })}</h2>
       <button class="btn icon" data-action="wk-next">${ICON.right}</button>
       <button class="btn sm" data-action="wk-this">This week</button>
-      <div class="spacer"></div><span class="saved-ind" id="savedInd">Notes autosave</span>
+      <div class="spacer"></div>${s.count ? `<button class="btn sm" data-action="share-week" data-ws="${ws}">${ICON.share}Share week</button>` : ''}<span class="saved-ind" id="savedInd">Notes autosave</span>
     </div>
     <div class="grid g-6">
       <div class="card kpi"><div class="kpi-label">Net P&L</div><div class="kpi-value ${cls(s.net)}">${money(s.net)}</div><div class="kpi-meta">last week ${money(ps.net)}</div></div>

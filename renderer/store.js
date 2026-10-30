@@ -152,8 +152,17 @@ const Store = (() => {
   }
   // Which calendar day a trade counts for. Times are stored in this computer's local time;
   // with settings.dayTz set (for example America/New_York), days follow that timezone instead.
+  // 'cme' = futures session day: New York time, and anything from 6 PM on counts toward the next day
+  // (CME closes 5 PM to 6 PM New York; Sunday 6 PM opens Monday's session).
   const tzFmt = {}, tzCache = new Map();
   function tzKey(date, tz) {
+    if (tz === 'cme') {
+      const f = tzFmt.cme || (tzFmt.cme = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }));
+      const p = {}; for (const x of f.formatToParts(date)) p[x.type] = x.value;
+      const d = new Date(Date.UTC(+p.year, +p.month - 1, +p.day));
+      if (+p.hour >= 18) d.setUTCDate(d.getUTCDate() + 1);
+      return d.toISOString().slice(0, 10);
+    }
     const f = tzFmt[tz] || (tzFmt[tz] = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }));
     return f.format(date);
   }

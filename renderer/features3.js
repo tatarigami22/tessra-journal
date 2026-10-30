@@ -211,8 +211,8 @@ const IMPORT_FIELDS = [
   ['price', 'Fill price (fills only)'], ['time', 'Fill time (fills only)']
 ];
 const CANDIDATES = {
-  symbol: ['symbol', 'instrument', 'contractname', 'contract', 'ticker', 'product', 'market'],
-  side: ['marketpos', 'side', 'tradetype', 'direction', 'buysell', 'action', 'positionside', 'type', 'dir', 'longshort'],
+  symbol: ['symbol', 'instrument', 'contractname', 'contract', 'ticker', 'underlying', 'product', 'market'],
+  side: ['marketpos', 'side', 'tradetype', 'direction', 'buysell', 'action', 'positionside', 'type', 'dir', 'longshort', 'bs'],
   qty: ['qty', 'quantity', 'tradequantity', 'size', 'contracts', 'filledqty', 'qtyfilled', 'filled', 'volume'],
   entryPrice: ['entryprice', 'openprice', 'avgentry', 'avgentryprice', 'entry', 'in', 'buyprice'],
   exitPrice: ['exitprice', 'closeprice', 'avgexit', 'avgexitprice', 'exit', 'out', 'sellprice'],
@@ -221,7 +221,7 @@ const CANDIDATES = {
   pnl: ['netpl', 'netpnl', 'profit', 'profitlossc', 'profitloss', 'pnl', 'realizedpnl', 'netprofit', 'grosspl', 'realized', 'result', 'pl'],
   fees: ['fees', 'fee', 'commission', 'commissionc', 'commissions'],
   id: ['tradenumber', 'tradeid', 'id', 'fillid', 'orderid', 'ordernumber'],
-  price: ['avgfillprice', 'fillprice', 'avgprice', 'price', 'execprice'],
+  price: ['avgfillprice', 'fillprice', 'avgprice', 'execprice', 'price'],
   time: ['filltime', 'updatetime', 'exectime', 'time', 'datetime', 'date']
 };
 const IMPORT_FORMATS = [
@@ -229,6 +229,7 @@ const IMPORT_FORMATS = [
   { name: 'ProjectX / TopstepX trades', test: h => h.includes('contractname') && (h.includes('enteredat') || h.includes('entryprice')) },
   { name: 'Sierra Chart trades list', test: h => h.includes('tradetype') && (h.includes('entrydatetime') || h.includes('entryprice')) },
   { name: 'Quantower positions history', test: h => h.includes('openprice') && h.includes('closeprice') },
+  { name: 'MotiveWave executions', fills: true, test: h => h.includes('action') && h.includes('price') && h.includes('time') && (h.includes('fillid') || h.includes('orderid') || h.includes('underlying')) && !h.includes('exitprice') },
   { name: 'Rithmic R|Trader fills', fills: true, test: h => (h.includes('buysell') || h.includes('side')) && (h.includes('avgfillprice') || h.includes('fillprice')) && !h.includes('exitprice') && !h.includes('closeprice') },
   { name: 'Fills / executions', fills: true, test: h => h.some(x => /fillprice|execprice/.test(x)) && !h.includes('exitprice') }
 ];
@@ -247,12 +248,30 @@ function cleanSymbol(s) {
   s = s.split(':')[0].split('.')[0].split(' ')[0].split('-')[0];
   return s;
 }
-function toLocalDT2(s) {
-  s = String(s ?? '').trim(); if (!s) return '';
-  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/i.test(s)) {
-    const d = new Date(s.replace(' ', 'T')); if (!isNaN(d)) return keyOf(d) + 'T' + d.toTimeString().slice(0, 5);
+// Parse an export timestamp to epoch ms. Understands ISO and M/D/Y layouts, seconds, milliseconds,
+// AM/PM and a trailing offset (Z, +0530, -05:00). Without an offset the time is this computer's local time.
+function parseStamp(s) {
+  s = String(s ?? '').trim(); if (!s) return NaN;
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{2})(?::(\d{2})(?:[.,](\d+))?)?\s*(AM|PM)?\s*(Z|[+-]\d{2}:?\d{2})?$/i.exec(s);
+  let y, mo, d, h, mi, sec, ms, ap, off;
+  if (m) [, y, mo, d, h, mi, sec, ms, ap, off] = m;
+  else {
+    m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})[ T]+(\d{1,2}):(\d{2})(?::(\d{2})(?:[.,](\d+))?)?\s*(AM|PM)?\s*(Z|[+-]\d{2}:?\d{2})?$/i.exec(s);
+    if (!m) { const t = Date.parse(s); return isNaN(t) ? NaN : t; }
+    [, mo, d, y, h, mi, sec, ms, ap, off] = m; if (y.length === 2) y = '20' + y;
   }
-  return toLocalDT(s);
+  h = +h; if (ap) { if (/pm/i.test(ap) && h < 12) h += 12; if (/am/i.test(ap) && h === 12) h = 0; }
+  const msv = ms ? Math.round(+('0.' + ms) * 1000) : 0;
+  if (off) {
+    let mins = 0; if (!/z/i.test(off)) { const o = off.replace(':', ''); mins = (o[0] === '-' ? -1 : 1) * (+o.slice(1, 3) * 60 + +o.slice(3, 5)); }
+    return Date.UTC(+y, +mo - 1, +d, h, +mi, +(sec || 0), msv) - mins * 60000;
+  }
+  return new Date(+y, +mo - 1, +d, h, +mi, +(sec || 0), msv).getTime();
+}
+function toLocalDT2(s) {
+  const t = parseStamp(s);
+  if (isNaN(t)) return toLocalDT(s);
+  const d = new Date(t); return keyOf(d) + 'T' + d.toTimeString().slice(0, 5);
 }
 function guessMapping(h, fmt) {
   const map = {};
@@ -288,16 +307,16 @@ function rowsToTrades(rows, map, fills, fmtName) {
     return out;
   }
   // fills: pair round trips flat to flat, per symbol, oldest first
-  const fl = rows.map(r => ({ sym: cleanSymbol(get(r, 'symbol')), short: isShort(get(r, 'side')), qty: Math.abs(parseFloat(String(get(r, 'qty')).replace(/[^0-9.\-]/g, ''))) || 0, price: parseFloat(String(get(r, 'price')).replace(/[^0-9.\-]/g, '')), time: toLocalDT2(get(r, 'time')), raw: get(r, 'time'), fee: Math.abs(moneyNum(get(r, 'fees'))) || 0, id: get(r, 'id') }))
-    .filter(f => f.sym && f.qty && !isNaN(f.price) && f.time).sort((a, b) => String(a.raw).localeCompare(String(b.raw)) || a.time.localeCompare(b.time));
+  const fl = rows.map(r => ({ sym: cleanSymbol(get(r, 'symbol')), short: isShort(get(r, 'side')), qty: Math.abs(parseFloat(String(get(r, 'qty')).replace(/[^0-9.\-]/g, ''))) || 0, price: parseFloat(String(get(r, 'price')).replace(/[^0-9.\-]/g, '')), time: toLocalDT2(get(r, 'time')), ts: parseStamp(get(r, 'time')), fee: Math.abs(moneyNum(get(r, 'fees'))) || 0, id: get(r, 'id') }))
+    .map((f, i) => Object.assign(f, { i })).filter(f => f.sym && f.qty && !isNaN(f.price) && f.time).sort((a, b) => ((a.ts || 0) - (b.ts || 0)) || a.i - b.i);
   const pos = {};
   for (const f of fl) {
     let p = pos[f.sym] || (pos[f.sym] = { q: 0, entQ: 0, entV: 0, exQ: 0, exV: 0, t0: '', fee: 0, ids: [] });
     let left = f.qty; const dir = f.short ? -1 : 1;
     while (left > 0) {
-      if (p.q === 0 || Math.sign(p.q) === dir) { p.q += dir * left; p.entQ += left; p.entV += left * f.price; if (!p.t0) p.t0 = f.time; p.fee += f.fee * (left / f.qty); p.ids.push(f.id); left = 0; }
+      if (p.q === 0 || Math.sign(p.q) === dir) { p.q += dir * left; p.entQ += left; p.entV += left * f.price; if (!p.t0) p.t0 = f.time; p.fee += f.fee * (left / f.qty); p.ids.push(f.id || f.ts); left = 0; }
       else {
-        const m = Math.min(left, Math.abs(p.q)); p.q += dir * m; p.exQ += m; p.exV += m * f.price; p.fee += f.fee * (m / f.qty); p.ids.push(f.id); left -= m;
+        const m = Math.min(left, Math.abs(p.q)); p.q += dir * m; p.exQ += m; p.exV += m * f.price; p.fee += f.fee * (m / f.qty); p.ids.push(f.id || f.ts); left -= m;
         if (p.q === 0) {
           const t = { symbol: f.sym, side: dir === -1 ? 'long' : 'short', qty: p.entQ, entryPrice: +(p.entV / p.entQ).toFixed(6), exitPrice: +(p.exV / p.exQ).toFixed(6), entryTime: p.t0, exitTime: f.time, importKey: `${fmtName}|${f.sym}|${p.t0}|${p.ids.join(',')}` };
           if (p.fee) t.fees = +p.fee.toFixed(2);
@@ -338,7 +357,7 @@ async function importCSVFlow() {
         </div></details>`}
       <div class="field"><label>Assign to account</label><select class="select" id="impAcc"><option value="">No account</option>${S.state.accounts.map(x => `<option value="${x.id}" ${ui.account === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
       <div class="table-wrap" style="max-height:260px" id="impPrev"></div>
-      <div class="faint" style="font-size:12px;margin-top:8px">Fees use your contract specs unless the file has them. Re-importing the same file skips trades you already have. Format not working? Use the Report a problem link in Settings and attach a sample.</div>
+      <div class="faint" style="font-size:12px;margin-top:8px">Fees use your contract specs unless the file has them. Re-importing the same file skips trades you already have. Opened the file in Numbers or Excel? Export it back to CSV first. Format not working? Use the Report a problem link in Settings and attach a sample.</div>
     </div>
     <div class="modal-f"><span></span><div class="row"><button class="btn" data-close>Cancel</button><button class="btn primary" data-go>Import</button></div></div>`);
   m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(m)));
@@ -375,7 +394,7 @@ function openSetupWizard() {
   const w = { step: 1, name: S.state.settings.name || '', firm: '', plan: '', size: '', own: false, inst: new Set(S.state.settings.instruments || ['MNQ']) };
   const firms = [...new Set(FIRM_PRESETS.map(p => p.firm))];
   const m = openModal('<div id="wiz"></div>', { size: 'sm', sticky: true });
-  const finish = () => { S.state.settings.onboarded = true; S.save(); closeModal(m); render(); setTimeout(maybeCommunityPrompt, 1500); };
+  const finish = () => { if (!S.state.settings.dayTz) S.state.settings.dayTz = 'cme'; S.state.settings.onboarded = true; S.save(); closeModal(m); render(); setTimeout(maybeCommunityPrompt, 1500); };
   const draw = () => {
     const dots = [1, 2, 3, 4].map(i => `<span style="width:${i === w.step ? 18 : 6}px;height:6px;border-radius:3px;background:${i <= w.step ? 'var(--accent)' : 'var(--line-2)'};display:inline-block;transition:width .2s"></span>`).join(' ');
     let body = '', next = 'Next';
@@ -396,7 +415,7 @@ function openSetupWizard() {
       <div class="chip-pick">${INSTRUMENTS.map(([k, n]) => `<button class="chip ${w.inst.has(k) ? 'acc' : ''}" data-inst="${k}" style="cursor:pointer;padding:6px 11px">${k} <span class="faint" style="font-weight:500">${n}</span></button>`).join(' ')}</div>`;
     if (w.step === 4) { body = `<h3 style="margin:0 0 4px">Get your trades in</h3><div class="muted" style="margin-bottom:14px">Import a file from your platform, or start fresh.</div>
       <div class="stat-list" style="gap:8px;display:grid">
-        <button class="btn" data-w="import" style="justify-content:flex-start">${ICON.download}Import a file <span class="faint" style="font-weight:500">Tradovate, NinjaTrader, Rithmic, ProjectX, Quantower, Sierra Chart, any CSV</span></button>
+        <button class="btn" data-w="import" style="justify-content:flex-start">${ICON.download}Import a file <span class="faint" style="font-weight:500">Tradovate, NinjaTrader, Rithmic, MotiveWave, ProjectX, Quantower, Sierra Chart, any CSV</span></button>
         <button class="btn" data-w="trade" style="justify-content:flex-start">${ICON.plus}Log my first trade</button>
         <button class="btn" data-w="demo" style="justify-content:flex-start">${ICON.analytics || ICON.plus}Explore with demo data <span class="faint" style="font-weight:500">remove it any time in Settings</span></button>
       </div>`; next = 'Finish'; }
@@ -547,7 +566,7 @@ document.addEventListener('change', e => {
   if (!(e.target.matches && e.target.matches('[data-daytz]'))) return;
   S.state.settings.dayTz = e.target.value; S.save();
   ui.calMonth = todayKey().slice(0, 7); ui.journalDay = todayKey(); if (typeof weekStartKey === 'function') ui.week = weekStartKey(todayKey());
-  render(true); toast(e.target.value === 'local' ? 'Days follow your computer\'s time zone' : 'Days now follow ' + e.target.selectedOptions[0].textContent.split(' (')[0]);
+  render(true); toast(e.target.value === 'local' ? 'Days follow your computer\'s time zone' : e.target.value === 'cme' ? 'Days now follow the futures session (6 PM New York rollover)' : 'Days now follow ' + e.target.selectedOptions[0].textContent.split(' (')[0]);
 });
 
 /* ===================== UPDATES ===================== */

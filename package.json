@@ -1,7 +1,7 @@
 {
   "name": "tessra",
   "productName": "Tessra",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tessra: a desktop trading journal for futures and prop firm traders",
   "main": "main.js",
   "author": "Ethan",
@@ -24,7 +24,8 @@
       "main.js",
       "preload.js",
       "renderer/**/*",
-      "build/icon.png"
+      "build/icon.png",
+      "build/tray*.png"
     ],
     "mac": {
       "category": "public.app-category.finance",

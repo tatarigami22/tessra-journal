@@ -14,7 +14,7 @@ const PAGES = {
 };
 const ORDER = Object.keys(PAGES);
 
-function applyTheme() { document.documentElement.dataset.theme = S.state.settings.theme || 'dark'; }
+function applyTheme() { applyAppearance(); }
 
 function renderNav() {
   let last = '', h = '';
@@ -60,7 +60,8 @@ function go(page) {
 const ACTIONS = {
   'nav': el => { closeDrawers(); go(el.dataset.page); },
   'nav-an': el => { ui.anTab = el.dataset.v; go('analytics'); },
-  'new-trade': el => lockGuardNewTrade(x => openTradeModal(null, Object.assign({ date: el.dataset.date }, x || {}))),
+  'run-setup': () => openSetupWizard(),
+  'new-trade': el => newTradeGate(x => openTradeModal(null, Object.assign({ date: el.dataset.date }, x || {}))),
   'tax-records': () => openTaxModal(),
   'sim-source': el => { simCfg().source = el.dataset.v; S.save(); render(true); },
   'sim-reset': () => { S.state.sim = null; S.save(); render(true); },
@@ -177,7 +178,7 @@ document.addEventListener('keydown', e => {
   if (e.target.dataset && e.target.dataset.newlist && e.key === 'Enter') { ACTIONS['add-list']({ dataset: { list: e.target.dataset.newlist } }); return; }
   if (e.key === 'Escape') { if (closeTop()) e.preventDefault(); return; }
   const mod = e.metaKey || e.ctrlKey;
-  if (mod && e.key.toLowerCase() === 'n') { e.preventDefault(); lockGuardNewTrade(x => openTradeModal(null, x || {})); }
+  if (mod && e.key.toLowerCase() === 'n') { e.preventDefault(); newTradeGate(x => openTradeModal(null, x || {})); }
   if (mod && /^[1-9]$/.test(e.key)) { e.preventDefault(); closeDrawers(); go(ORDER[+e.key - 1]); }
   if (mod && e.key === ',') { e.preventDefault(); closeDrawers(); go('settings'); }
 });
@@ -210,7 +211,9 @@ window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTi
   ui.calMonth = todayKey().slice(0, 7);
   ui.journalDay = todayKey();
   render();
-  setTimeout(() => { badgeNotify(); showLockScreen(); }, 400);
+  setTimeout(() => { if (needsSetup()) openSetupWizard(); else { badgeNotify(); showLockScreen(); setTimeout(maybeCommunityPrompt, 600); } }, 400);
+  S.onChange(syncMenuBar); syncMenuBar(); setInterval(syncMenuBar, 60000);
+  if (window.edge && window.edge.onTrayNewTrade) window.edge.onTrayNewTrade(() => newTradeGate(x => openTradeModal(null, x || {})));
   setTimeout(async () => {
     if (!window.edge || !window.edge.checkUpdate) return;
     const u = await window.edge.checkUpdate();

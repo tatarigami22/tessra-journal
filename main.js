@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, dialog, clipboard, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, dialog, clipboard, nativeImage, Tray } = require('electron');
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
@@ -124,6 +124,32 @@ ipcMain.handle('pdf:save', async (e, defaultName, html) => {
 
 const ICON = path.join(__dirname, 'build', 'icon.png');
 
+/* ---------- menu bar / system tray ---------- */
+let tray = null, lastTray = null;
+function mainWindow() { return BrowserWindow.getAllWindows()[0] || createWindow(); }
+function showWindow() { const w = mainWindow(); if (w.isMinimized()) w.restore(); w.show(); w.focus(); return w; }
+function buildTray(p) {
+  if (!p || !p.enabled) { if (tray) { tray.destroy(); tray = null; } return; }
+  if (!tray) {
+    const file = path.join(__dirname, 'build', process.platform === 'darwin' ? 'trayTemplate.png' : 'tray.png');
+    const img = nativeImage.createFromPath(file);
+    if (process.platform === 'darwin') img.setTemplateImage(true);
+    tray = new Tray(img);
+    if (process.platform !== 'darwin') tray.on('click', () => showWindow());
+  }
+  if (process.platform === 'darwin') tray.setTitle(p.title ? ' ' + p.title : '', { fontType: 'monospacedDigit' });
+  tray.setToolTip(p.tooltip || 'Tessra');
+  tray.setContextMenu(Menu.buildFromTemplate([
+    ...(p.lines || []).map(l => ({ label: String(l), enabled: false })),
+    { type: 'separator' },
+    { label: 'New trade', click: () => { const w = showWindow(); w.webContents.send('tray:newTrade'); } },
+    { label: 'Open Tessra', click: () => showWindow() },
+    { type: 'separator' },
+    { label: 'Quit Tessra', role: 'quit' }
+  ]));
+}
+ipcMain.handle('tray:update', (e, p) => { lastTray = p; try { buildTray(p); } catch (err) { console.error('tray', err); } });
+
 function createWindow() {
   if (process.platform === 'darwin' && !app.isPackaged && app.dock && fs.existsSync(ICON)) app.dock.setIcon(ICON);
   const win = new BrowserWindow({
@@ -144,7 +170,9 @@ function createWindow() {
     }
   });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+  win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' }; });
+  win.webContents.on('will-navigate', (e, url) => { if (/^https?:\/\//.test(url)) { e.preventDefault(); shell.openExternal(url); } });
+  return win;
 }
 
 const isMac = process.platform === 'darwin';

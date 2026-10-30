@@ -188,6 +188,7 @@ function pageAccounts() {
       <div id="ac-${a.id}" style="height:60px;margin:10px 0 6px"></div>
       ${s.targetProgress !== null ? `<div class="between lr-sub" style="margin:10px 0 5px"><span>Profit target ${money0(a.profitTarget)}</span><span>${pct(s.targetProgress, 0)} · ${money0(s.toTarget)} to go</span></div><div class="progress pos"><div style="width:${s.targetProgress * 100}%"></div></div>` : ''}
       ${roomPct !== null ? `<div class="between lr-sub" style="margin:12px 0 5px"><span>Drawdown floor ${money0(s.threshold)} (${a.drawdownType === 'static' ? 'static' : a.drawdownType === 'eod' ? 'EOD trailing' : 'intraday trailing'})</span><span>${money0(s.room)} room</span></div><div class="progress ${roomPct < .35 ? 'neg' : roomPct < .6 ? 'warn' : ''}"><div style="width:${roomPct * 100}%"></div></div>` : ''}
+      ${consistencyCardHtml(a)}
       ${payoutMiniHtml(a)}
       ${a.dailyLossLimit ? `<div class="between lr-sub" style="margin:12px 0 5px"><span>Today vs daily loss limit</span><span class="${cls(s.todayPnl)}">${money(s.todayPnl)} / -${money0(a.dailyLossLimit)}</span></div><div class="progress neg"><div style="width:${Math.min(100, Math.max(0, -s.todayPnl) / a.dailyLossLimit * 100)}%"></div></div>` : ''}
       <div class="kv mt"><div><div class="k">Trades</div><div class="v">${sum.count}</div></div><div><div class="k">Trading days</div><div class="v">${s.tradingDays}${a.minDays ? ' / ' + a.minDays : ''}</div></div>
@@ -253,15 +254,18 @@ function pageSettings() {
     z.addEventListener('drop', e => { e.preventDefault(); z.classList.remove('over'); add(e.dataTransfer.files); });
   });
   return `<div class="card" style="padding:4px 24px">
-    <div class="settings-sec"><div><h3>Profile and appearance</h3><p>How the app greets you and looks.</p></div>
+    <div class="settings-sec"><div><h3>Profile</h3><p>How the app greets you.</p></div>
       <div class="grid g-3"><div class="field"><label>Your name</label><input class="input" data-setting="name" value="${esc(st.settings.name || '')}"></div>
-        <div class="field"><label>Theme</label>${seg('theme', [['dark', 'Dark'], ['light', 'Light']], st.settings.theme)}</div>
-        <div class="field"><label>Week starts on</label>${seg('week-start', [['0', 'Sunday'], ['1', 'Monday']], String(st.settings.weekStart || 0))}</div></div></div>
+        <div class="field"><label>Week starts on</label>${seg('week-start', [['0', 'Sunday'], ['1', 'Monday']], String(st.settings.weekStart || 0))}</div>
+        <div class="field"><label>First-run setup</label><button class="btn" data-action="run-setup">${ICON.spark}Run setup again</button></div></div></div>
+    ${appearanceSettingsHtml()}
     <div class="settings-sec"><div><h3>Risk rules</h3><p>Shown on the dashboard. You get warned as you approach them.</p></div>
       <div class="grid g-3">${gi('dailyMaxLoss', 'Daily max loss ($)', 'Stop trading for the day')}${gi('dailyTarget', 'Daily profit target ($)', 'Consider stopping when hit')}${gi('weeklyTarget', 'Weekly target ($)', 'Used for weekly progress')}
         ${gi('maxTradesPerDay', 'Max trades per day', 'Overtrading guard')}${gi('riskPerTrade', 'Planned risk per trade ($)', 'Reference for sizing')}</div></div>
     <div class="settings-sec"><div><h3>Daily lock</h3><p>When you hit a limit, the app tells you you're done for the day and tags any later trade "Traded after lock". Uses your risk rules above. Resets at midnight.</p></div>
       <div class="check-list">${(() => { const L = lockSettings(); return [['enabled', 'Turn on daily lock'], ['onLoss', `Lock at daily max loss (${g.dailyMaxLoss ? '-$' + g.dailyMaxLoss : 'not set'})`], ['onTarget', `Lock at daily profit target (${g.dailyTarget ? '+$' + g.dailyTarget : 'not set'})`], ['onMaxTrades', `Lock after max trades (${g.maxTradesPerDay || 'not set'})`]].map(([k, l]) => `<label><input type="checkbox" data-lock="${k}" ${L[k] ? 'checked' : ''}>${l}</label>`).join(''); })()}</div></div>
+    ${checklistSettingsHtml()}
+    ${menuBarSettingsHtml()}
     <div class="settings-sec"><div><h3>Copy trading</h3><p>Trades copied to several accounts are linked. Each account keeps its own balance, drawdown and payouts.</p></div>
       <div class="check-list"><label><input type="checkbox" data-setting-ck="countCopiesOnce" ${st.settings.countCopiesOnce !== false ? 'checked' : ''}>In "All accounts" view, count a copied trade once in stats (pick one account in the top filter to see that account's own numbers)</label></div></div>
     <div class="settings-sec"><div><h3>Tax records</h3><p>Yearly summary of payouts, your split, eval and data costs, and live account P&L. Export as PDF or CSV for your accountant.</p></div>
@@ -295,12 +299,14 @@ function pageSettings() {
       </div></div>
     <div class="settings-sec"><div><h3>Tags</h3><p>Context labels you can put on any trade.</p></div><div>${chipEd('tags', 'acc')}</div></div>
     <div class="settings-sec"><div><h3>Mistakes</h3><p>Tag the errors so the app can show what they cost you.</p></div><div>${chipEd('mistakes', 'neg')}</div></div>
-    <div class="settings-sec"><div><h3>Import trades</h3><p>Tradovate: Account Reports, Performance tab, export CSV. Other platforms: any CSV with columns like date, symbol, side, qty, entry, exit, pnl.</p></div>
+    <div class="settings-sec"><div><h3>Import trades</h3><p>Tradovate, NinjaTrader, Rithmic R|Trader, ProjectX / TopstepX, Quantower and Sierra Chart exports are recognized automatically. Any other CSV works too: match the columns once in the import window.</p></div>
       <div class="row"><button class="btn primary" data-action="import-csv">${ICON.upload}Import CSV</button><button class="btn" data-action="export-csv">${ICON.download}Export trades CSV</button></div></div>
-    <div class="settings-sec"><div><h3>Data and backups</h3><p>Everything is stored locally on this Mac. A daily backup is kept automatically (last 30 days).</p></div>
+    <div class="settings-sec"><div><h3>Data and backups</h3><p>Everything is stored locally on this computer. A daily backup is kept automatically (last 30 days).</p></div>
       <div class="grid" style="gap:12px"><div class="muted" style="font-size:12px">Data folder: <code>${esc(info.dataDir)}</code></div>
         <div class="row wrap"><button class="btn" data-action="export-backup">${ICON.download}Export full backup</button><button class="btn" data-action="import-backup">${ICON.upload}Restore backup</button>${window.edge ? `<button class="btn" data-action="open-data">${ICON.folder}Open data folder</button>` : ''}</div>
         <div class="row wrap"><button class="btn ghost" data-action="load-demo">${ICON.spark}Load demo data</button><button class="btn ghost" data-action="clear-demo">Remove demo data</button><button class="btn danger" data-action="wipe">${ICON.trash}Delete everything</button></div></div></div>
+    <div class="settings-sec"><div><h3>Community and feedback</h3><p>Found a bug, or an import that doesn't work with your platform? Want a feature? Let me know.</p></div>
+      <div class="row wrap">${DISCORD_URL ? `<a class="btn primary" href="${esc(DISCORD_URL)}" target="_blank" rel="noopener">Join the Discord</a>` : ''}<a class="btn" href="https://github.com/tatarigami22/tessra-journal/issues/new?labels=bug&title=Bug:%20" target="_blank" rel="noopener">${ICON.warn}Report a problem</a><a class="btn" href="https://github.com/tatarigami22/tessra-journal/issues/new?labels=enhancement&title=Feature%20request:%20" target="_blank" rel="noopener">${ICON.spark}Request a feature</a></div></div>
     <div class="settings-sec" style="border:0"><div><h3>Shortcuts</h3></div><div class="muted" style="font-size:12.8px;line-height:1.9"><code>${MOD}N</code> new trade &nbsp; <code>${MOD}1</code> to <code>${MOD}9</code> switch pages &nbsp; <code>${MOD}V</code> paste screenshot into an open trade or journal &nbsp; <code>Esc</code> close panel</div></div>
   </div>`;
 }

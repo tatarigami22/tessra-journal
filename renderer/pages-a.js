@@ -114,6 +114,7 @@ function pageDashboard() {
         <div class="progress ${lossUsed / g.dailyMaxLoss > .7 ? 'neg' : 'warn'}"><div style="width:${Math.min(100, lossUsed / g.dailyMaxLoss * 100)}%"></div></div>` : ''}
       ${g.dailyTarget ? `<div class="between" style="font-size:12px;margin:14px 0 6px"><span class="muted">Daily target</span><span><b>${money0(Math.max(0, td.net))}</b> <span class="faint">/ ${money0(g.dailyTarget)}</span></span></div>
         <div class="progress pos"><div style="width:${Math.min(100, Math.max(0, td.net) / g.dailyTarget * 100)}%"></div></div>` : ''}
+      ${consistencyDashHtml()}
       <div class="seg-label" style="margin-top:20px">Routine</div>
       <div class="stat-list">
         <div class="stat-row"><span class="k">Pre-market plan</span>${j.premarket ? `<span class="chip pos">${ICON.check} Done</span>` : `<button class="btn sm" data-action="goto-journal" data-date="${today}">Write plan</button>`}</div>

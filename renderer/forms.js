@@ -7,9 +7,9 @@ function openTradeModal(existing, preset = {}) {
   const defAcc = ui.account !== 'all' ? ui.account : (lastAcc ? lastAcc.accountId : (st.accounts[0] || {}).id) || '';
   const baseTime = preset.date ? preset.date + 'T' + (nowLocal().slice(11)) : nowLocal();
   const d = existing ? JSON.parse(JSON.stringify(existing)) : preset.template ? Object.assign(JSON.parse(JSON.stringify(preset.template)), { id: S.uid(), entryTime: nowLocal(), exitTime: nowLocal(), screenshots: [], importKey: undefined, demo: undefined, createdAt: undefined }) : {
-    id: S.uid(), accountId: defAcc, symbol: lastAcc ? lastAcc.symbol : 'MNQ', side: 'long', qty: 1,
+    id: S.uid(), accountId: defAcc, symbol: lastAcc ? lastAcc.symbol : (S.state.settings.defaultSymbol || 'MNQ'), side: 'long', qty: 1,
     entryTime: baseTime, exitTime: baseTime, entryPrice: '', exitPrice: '', stopPrice: '', targetPrice: '', fees: '', pnlOverride: '',
-    setup: '', tags: [], mistakes: [], rating: 0, notes: '', screenshots: [], rulesFollowed: []
+    setup: preset.setup || '', tags: [], mistakes: [], rating: 0, notes: '', screenshots: [], rulesFollowed: []
   };
   d.tags = d.tags || []; d.mistakes = d.mistakes || []; d.screenshots = d.screenshots || []; d.rulesFollowed = d.rulesFollowed || [];
   const added = [];
@@ -89,7 +89,7 @@ function openTradeModal(existing, preset = {}) {
     let target;
     const removed = existing ? (existing.screenshots || []).filter(n => !d.screenshots.includes(n)) : [];
     if (existing) { target = st.trades.find(t => t.id === d.id); Object.assign(target, d); }
-    else { d.createdAt = new Date().toISOString(); tagIfAfterLock(d); st.trades.push(d); target = d; }
+    else { d.createdAt = new Date().toISOString(); tagIfAfterLock(d); applyChecklistTag(d, preset); st.trades.push(d); target = d; }
     applyCopies(target, copyTo);
     removed.forEach(n => { if (!imageInUse(n)) S.deleteImage(n); });
     added.length = 0;
@@ -195,6 +195,7 @@ function openAccountModal(existing) {
   const sel = (k, l, opts) => `<div class="field"><label>${l}</label><select class="select" data-k="${k}">${opts.map(([v, t]) => `<option value="${v}" ${String(d[k]) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
   const m = openModal(`<div class="modal-h"><h3>${existing ? 'Edit account' : 'New account'}</h3><button class="btn icon ghost" data-close>${ICON.close}</button></div>
     <div class="modal-b"><div class="grid g-2">
+      ${firmPresetFieldHtml(d)}
       <div class="field"><label>Account name</label><input class="input" data-k="name" value="${esc(d.name)}" placeholder="LucidFlex 25K #1" autofocus></div>
       <div class="field"><label>Firm or broker</label><input class="input" data-k="firm" value="${esc(d.firm)}" placeholder="Lucid Trading"></div>
       ${sel('type', 'Type', [['eval', 'Evaluation'], ['funded', 'Funded'], ['live', 'Live (own money)'], ['sim', 'Sim / practice']])}
@@ -202,6 +203,7 @@ function openAccountModal(existing) {
       ${fi('startBalance', 'Starting balance ($)')}${fi('profitTarget', 'Profit target ($)', 'number', 'Leave blank for funded or live')}
       ${fi('maxDrawdown', 'Max drawdown ($)')}${sel('drawdownType', 'Drawdown type', [['eod', 'End of day trailing'], ['intraday', 'Intraday trailing'], ['static', 'Static']])}
       ${fi('dailyLossLimit', 'Daily loss limit ($)', 'number', 'Optional')}${fi('minDays', 'Min trading days', 'number', 'Optional')}
+      ${fi('consistencyPct', 'Consistency rule (%)', 'number', 'Max share of profit one day can be. Blank = none')}<div></div>
       ${fi('cost', 'Cost of account ($)', 'number', 'Eval or activation fee, counts as an expense')}${fi('createdAt', 'Start date', 'date')}
       <div class="field" style="grid-column:span 2"><label class="row" style="gap:8px;cursor:pointer"><input type="checkbox" data-k="lockAtStart" ${d.lockAtStart !== false ? 'checked' : ''} style="accent-color:var(--accent)"> Trailing drawdown stops trailing once it reaches the lock level</label></div>
       ${payoutRulesFormHtml(d)}
@@ -209,11 +211,13 @@ function openAccountModal(existing) {
     <div class="modal-f">${existing ? `<button class="btn danger" data-del>${ICON.trash}Delete</button>` : '<span></span>'}<div class="row"><button class="btn" data-close>Cancel</button><button class="btn primary" data-save>Save account</button></div></div>`, { size: 'sm' });
   m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(m)));
   wirePayoutForm(m);
+  wireFirmPreset(m, !existing);
   m.querySelector('[data-save]').addEventListener('click', () => {
     m.querySelectorAll('[data-k]').forEach(i => { d[i.dataset.k] = i.type === 'checkbox' ? i.checked : i.value; });
     d.payout = readPayoutForm(m);
+    d.preset = m.querySelector('[data-firm-preset]').value || d.preset || '';
     d.name = d.name.trim(); if (!d.name) return toast('Name the account');
-    for (const k of ['startBalance', 'profitTarget', 'maxDrawdown', 'dailyLossLimit', 'minDays', 'cost', 'lockOffset']) d[k] = S.hasNum(d[k]) ? Number(d[k]) : '';
+    for (const k of ['startBalance', 'profitTarget', 'maxDrawdown', 'dailyLossLimit', 'minDays', 'cost', 'lockOffset', 'consistencyPct']) d[k] = S.hasNum(d[k]) ? Number(d[k]) : '';
     if (existing) Object.assign(S.state.accounts.find(a => a.id === d.id), d); else S.state.accounts.push(d);
     S.save(); closeModal(m); render(); toast('Account saved');
   });
@@ -319,7 +323,7 @@ function pickFile(accept) {
   });
 }
 
-async function importCSVFlow() {
+async function importCSVFlowLegacy() {
   const file = await pickFile('.csv,text/csv'); if (!file) return;
   const { trades: parsed, format } = parseTradesCSV(file.text);
   if (!parsed.length) return toast('No trades found in that file');

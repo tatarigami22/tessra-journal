@@ -1,5 +1,7 @@
 > [!NOTE]
 > **I don't earn money from this, it's for the community to benefit but please follow my Instagram [@NQ.Masked](https://www.instagram.com/nq.masked/)**
+>
+> Join the [Tessra Discord](https://discord.gg/EwphEWdTMT) to get notified of updates and to request features.
 
 <p align="center"><img src="build/icon.png" width="128" alt="Tessra"></p>
 <h1 align="center">Tessra</h1>

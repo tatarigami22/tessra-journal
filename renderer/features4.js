@@ -230,7 +230,11 @@ function payoutCardData(id, o) {
   const stats = o.hideDollars
     ? [{ k: 'PAYOUT', v: '#' + n }, { k: 'ACCOUNT', v: acc ? acc.name : '-' }, { k: 'FIRM', v: (acc && acc.firm) || '-' }, { k: 'FROM THIS ACCOUNT', v: String(accPays || 1) }]
     : [{ k: 'PAYOUT', v: '#' + n }, { k: 'ACCOUNT', v: acc ? acc.name : '-' }, { k: 'LIFETIME PAYOUTS', v: plainUsd(total) }, { k: 'SPLIT', v: (S.hasNum(p.split) ? p.split : 100) + '%' }];
+  const receipt = [['PAYOUT', '#' + n], ['ACCOUNT', acc ? acc.name.toUpperCase() : '-']].concat(acc && acc.firm ? [['FIRM', acc.firm.toUpperCase()]] : [])
+    .concat(o.hideDollars ? [] : [['REQUESTED', plainUsd(Number(p.amount || 0))], ['YOUR SPLIT', (S.hasNum(p.split) ? p.split : 100) + '%'], ['LIFETIME', plainUsd(total)]]);
   return {
+    rarity: Object.assign({}, Share.RARITY[0], { label: 'PAYDAY' }), flavor: n === 1 ? 'The first one hits different.' : 'Paid is paid.',
+    receipt, receiptHead: date || 'PAYOUT', badges: [{ t: 'PAYOUT #' + n, c: '#f5c542' }].concat(n === 1 ? [{ t: 'FIRST PAYOUT', c: '#2ef0a4' }] : []),
     kind: 'payout', seed: 'payout' + p.id, result: 'win', title: 'PAYOUT',
     subtitle: [acc && acc.firm ? acc.firm.toUpperCase() : '', date].filter(Boolean).join(' · '),
     chips: [{ t: 'PAYOUT #' + n, c: '#f5c542' }],
@@ -244,6 +248,9 @@ function dnaCardData(range, o) {
   if (!d.count) throw new Error('No trades to read your DNA from yet');
   const line = d.insights.find(x => !o.hideDollars || !x.money);
   return {
+    badges: [d.session ? { t: d.session.name.toUpperCase(), c: d.session.color } : null, { t: d.style.toUpperCase(), c: '#a597ff' }].filter(Boolean),
+    receipt: [['STYLE', d.style.toUpperCase()], ['HOME SESSION', d.session ? d.session.name.toUpperCase() : '-'], ['WIN RATE', pct(d.s.winRate, 0)], ['PAYOFF', num(d.s.payoff) + 'X'], ['AVG HOLD', fmtHold(d.s.avgHold)], ['TRADES / DAY', num(d.tradesPerDay, 1)], ['TOP SETUP', d.topSetup ? d.topSetup.name.toUpperCase() : '-']],
+    receiptHead: `${d.count} TRADES ANALYZED`, rarity: Object.assign({}, Share.RARITY[1], { label: 'TRADER DNA' }), flavor: d.tagline,
     kind: 'dna', seed: 'dna' + d.name, result: d.s.net >= 0 ? 'win' : 'loss', title: 'TRADER DNA',
     subtitle: `${d.count} TRADES`, chips: [{ t: 'TRADER DNA', c: '#a597ff' }],
     headline: d.name, headNum: null, sub: d.tagline,

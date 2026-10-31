@@ -57,3 +57,12 @@ These are the owner's notes for common questions. The current README is added be
 - Pre-trade checklist: optional, in Settings.
 - Run the first-run setup again: Settings > Profile > Run setup again.
 - Feature ideas go in #feature-requests.
+
+## New in 1.2.0
+- Sessions and killzones: each trade is tagged Asia, London, NY pre-market, NY AM, NY lunch, NY PM or After hours by its entry time in New York time, and "KZ" if inside an ICT killzone (London 2 to 5 AM, NY AM 7 to 10 AM, NY PM 1:30 to 4 PM New York). Trades page has a session filter; Analytics > Time shows P&L by session and killzone.
+- Grades: A+, A, B or C on every trade (trade form). They replace the old 1 to 5 star rating; old ratings converted automatically (5 = A+, 4 = A, 3 = B, 1 and 2 = C). Analytics > Breakdown and Psychology show results by grade.
+- Trader DNA: Analytics > Trader DNA names the user's trading style from their trades and lists patterns. Gets more accurate after 20+ trades. Has a Share button.
+- Payouts: logging a payout shows a celebration with a "Share payout card" button. Every payout in Accounts > Payouts and expenses has a share icon.
+- Tessra Wrapped: year recap slides. Calendar > Year > "Wrapped" button, or the dashboard banner in December and January. Save a slide as PNG or all slides as a GIF; can hide dollar amounts.
+- Share card layouts: Spotlight, Centered, Collectible and Receipt. Collectible trade cards get a rarity from the R multiple (Common, Rare 3R+, Epic 5R+, Legendary 10R+); a trade needs a stop loss for R, so trades without a stop show as Common. Losses get "Took an L" / "Tuition paid" stamps (can be turned off in the share window).
+- Save video exports an MP4 for Instagram and TikTok stories. The small "Made with Tessra" line and the Discord invite on cards can be turned off in the share window.

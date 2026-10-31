@@ -514,3 +514,4 @@ a { color: var(--accent-2); }
 .sess-chip.mini { padding: 1px 6px; font-size: 10.5px; margin-left: 4px; vertical-align: 1px; }
 #tradesTable .tbl th, #tradesTable .tbl td { padding-left: 9px; padding-right: 9px; }
 #tradesTable .tbl th:first-child, #tradesTable .tbl td:first-child { padding-left: 14px; }
+.bt-storm { background: repeating-linear-gradient(105deg, transparent 0 9px, rgba(170,200,255,.25) 9px 10px), radial-gradient(circle at 30% 20%, #3a4658, #0b1018 70%); }

@@ -571,7 +571,7 @@ const Share = (() => {
     ctx.fillText(loss ? 'NO REFUNDS. LESSON INCLUDED.' : d.result === 'be' ? 'NO CHARGE TODAY.' : 'THANK YOU FOR YOUR LIQUIDITY', M, y); ctx.letterSpacing = '0px';
     // barcode
     y += 30 * u; const rnd = seedRng(d.seed + 'bar'); let bx = L + 40 * u; const bw = R - L - 80 * u, bh = 64 * u;
-    const stampY = y + bh / 2;
+    const stampY = y + bh / 2 - 14 * u;
     if (y + bh + 70 * u < py + ph) {
       ctx.fillStyle = ink; while (bx < L + 40 * u + bw) { const w = (1 + Math.floor(rnd() * 3.5)) * 2.2 * u; if (rnd() > 0.35) ctx.fillRect(bx, y, w, bh); bx += w + 2.2 * u; }
       y += bh + 30 * u;

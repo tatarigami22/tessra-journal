@@ -9,7 +9,7 @@ function openTradeModal(existing, preset = {}) {
   const d = existing ? JSON.parse(JSON.stringify(existing)) : preset.template ? Object.assign(JSON.parse(JSON.stringify(preset.template)), { id: S.uid(), entryTime: nowLocal(), exitTime: nowLocal(), screenshots: [], importKey: undefined, demo: undefined, createdAt: undefined }) : {
     id: S.uid(), accountId: defAcc, symbol: lastAcc ? lastAcc.symbol : (S.state.settings.defaultSymbol || 'MNQ'), side: 'long', qty: 1,
     entryTime: baseTime, exitTime: baseTime, entryPrice: '', exitPrice: '', stopPrice: '', targetPrice: '', fees: '', pnlOverride: '',
-    setup: preset.setup || '', tags: [], mistakes: [], rating: 0, notes: '', screenshots: [], rulesFollowed: []
+    setup: preset.setup || '', tags: [], mistakes: [], notes: '', screenshots: [], rulesFollowed: []
   };
   d.tags = d.tags || []; d.mistakes = d.mistakes || []; d.screenshots = d.screenshots || []; d.rulesFollowed = d.rulesFollowed || [];
   const added = [];
@@ -30,7 +30,6 @@ function openTradeModal(existing, preset = {}) {
       <div class="form-grid">
         <div class="field s2"><label>Setup</label><select class="select" data-f="setup"><option value="">No setup</option>${st.setups.map(s => `<option value="${s.id}" ${s.id === d.setup ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>
         ${gradeFieldHtml(d)}
-        <div class="field s2"><label>Trade rating</label><div class="scale" id="ratingScale">${[1, 2, 3, 4, 5].map(n => `<button data-rate="${n}" class="${+d.rating === n ? 'on' : ''}">${n}</button>`).join('')}</div></div>
         ${sessionFieldHtml()}
         <div class="field s4" id="rulesBox"></div>
         <div class="field s4"><label>Tags</label><div class="row wrap" style="gap:6px">${st.tags.map(t => `<span class="chip toggle ${d.tags.includes(t) ? 'on' : ''}" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}</div></div>
@@ -75,7 +74,6 @@ function openTradeModal(existing, preset = {}) {
     calc();
   }));
   m.querySelectorAll('[data-side]').forEach(b => b.addEventListener('click', () => { d.side = b.dataset.side; m.querySelectorAll('[data-side]').forEach(x => x.classList.toggle('on', x === b)); calc(); }));
-  m.querySelectorAll('[data-rate]').forEach(b => b.addEventListener('click', () => { d.rating = +d.rating === +b.dataset.rate ? 0 : +b.dataset.rate; m.querySelectorAll('[data-rate]').forEach(x => x.classList.toggle('on', +x.dataset.rate === d.rating)); }));
   m.querySelectorAll('[data-tag]').forEach(c => c.addEventListener('click', () => { const t = c.dataset.tag; d.tags = d.tags.includes(t) ? d.tags.filter(x => x !== t) : [...d.tags, t]; c.classList.toggle('on'); }));
   m.querySelectorAll('[data-mistake]').forEach(c => c.addEventListener('click', () => { const t = c.dataset.mistake; d.mistakes = d.mistakes.includes(t) ? d.mistakes.filter(x => x !== t) : [...d.mistakes, t]; c.classList.toggle('on'); }));
   m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(m)));
@@ -144,8 +142,8 @@ function openTradeDrawer(id) {
         ${kv('Entry', fmtPrice(t.entryPrice))}${kv('Exit', fmtPrice(t.exitPrice))}${kv('Points', S.points(t) === null ? '-' : num(S.points(t)), cls(S.points(t) || 0))}
         ${kv('Stop', fmtPrice(t.stopPrice))}${kv('Target', fmtPrice(t.targetPrice))}${kv('Planned R', S.plannedR(t) ? num(S.plannedR(t), 1) + 'R' : '-')}
         ${kv('Gross', money(S.gross(t)), cls(S.gross(t)))}${kv('Fees', money(-S.fees(t), false))}${kv('Risk', S.risk(t) ? money(S.risk(t), false) : '-')}
-        ${kv('Hold time', fmtHold(S.holdMinutes(t)))}${kv('Rating', t.rating ? stars(t.rating) : '-')}${kv('$ / point', '$' + S.spec(t.symbol).mult)}
-        ${kv('Grade', gradeChip(t.grade))}${kv('Session', sessionChip(t))}${kv('Killzone', killzoneOf(t) ? esc(killzoneOf(t).name.replace(' killzone', '')) : 'Outside')}
+        ${kv('Hold time', fmtHold(S.holdMinutes(t)))}${kv('Grade', gradeChip(t.grade))}${kv('$ / point', '$' + S.spec(t.symbol).mult)}
+        ${kv('Session', sessionChip(t))}${kv('Killzone', killzoneOf(t) ? esc(killzoneOf(t).name.replace(' killzone', '')) : 'Outside')}
       </div></div>
       ${sp ? `<div><div class="seg-label">Setup</div><div class="row"><span class="dot" style="background:${sp.color}"></span><b>${esc(sp.name)}</b>${sp.rules.length ? `<span class="chip ${(t.rulesFollowed || []).length === sp.rules.length ? 'pos' : 'warn'}">${(t.rulesFollowed || []).length}/${sp.rules.length} rules followed</span>` : ''}</div>
         ${sp.rules.length ? `<div class="check-list mt">${sp.rules.map((rl, i) => `<label style="cursor:default"><span class="${(t.rulesFollowed || []).includes(i) ? 'pos' : 'neg'}">${(t.rulesFollowed || []).includes(i) ? ICON.check : ICON.close}</span>${esc(rl)}</label>`).join('')}</div>` : ''}</div>` : ''}
@@ -349,7 +347,7 @@ async function importCSVFlowLegacy() {
   m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(m)));
   m.querySelector('[data-go]').addEventListener('click', () => {
     const acc = m.querySelector('#impAcc').value;
-    for (const t of fresh) { delete t.srcPnl; S.state.trades.push(Object.assign({ id: S.uid(), accountId: acc, stopPrice: '', targetPrice: '', fees: '', pnlOverride: '', setup: '', tags: [], mistakes: [], rating: 0, notes: '', screenshots: [], rulesFollowed: [], createdAt: new Date().toISOString() }, t)); }
+    for (const t of fresh) { delete t.srcPnl; S.state.trades.push(Object.assign({ id: S.uid(), accountId: acc, stopPrice: '', targetPrice: '', fees: '', pnlOverride: '', setup: '', tags: [], mistakes: [], notes: '', screenshots: [], rulesFollowed: [], createdAt: new Date().toISOString() }, t)); }
     S.save(); closeModal(m); render(); toast(`Imported ${fresh.length} trades`);
   });
 }
@@ -360,9 +358,9 @@ function download(name, content, type = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 function exportCSV() {
-  const cols = ['date', 'entryTime', 'exitTime', 'account', 'symbol', 'side', 'qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'points', 'fees', 'netPnl', 'rMultiple', 'setup', 'tags', 'mistakes', 'rating', 'grade', 'session', 'notes'];
+  const cols = ['date', 'entryTime', 'exitTime', 'account', 'symbol', 'side', 'qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'points', 'fees', 'netPnl', 'rMultiple', 'setup', 'tags', 'mistakes', 'grade', 'session', 'notes'];
   const q = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  const rows = S.sortTrades(trades()).map(t => [S.dayOf(t), t.entryTime, t.exitTime, (accountById(t.accountId) || {}).name || '', t.symbol, t.side, t.qty, t.entryPrice, t.exitPrice, t.stopPrice, t.targetPrice, S.points(t) ?? '', S.fees(t).toFixed(2), S.pnl(t).toFixed(2), S.rMultiple(t) === null ? '' : S.rMultiple(t).toFixed(2), setupName(t.setup), (t.tags || []).join('; '), (t.mistakes || []).join('; '), t.rating || '', t.grade || '', (sessionOf(t) || {}).name || '', t.notes || ''].map(q).join(','));
+  const rows = S.sortTrades(trades()).map(t => [S.dayOf(t), t.entryTime, t.exitTime, (accountById(t.accountId) || {}).name || '', t.symbol, t.side, t.qty, t.entryPrice, t.exitPrice, t.stopPrice, t.targetPrice, S.points(t) ?? '', S.fees(t).toFixed(2), S.pnl(t).toFixed(2), S.rMultiple(t) === null ? '' : S.rMultiple(t).toFixed(2), setupName(t.setup), (t.tags || []).join('; '), (t.mistakes || []).join('; '), t.grade || '', (sessionOf(t) || {}).name || '', t.notes || ''].map(q).join(','));
   download(`tessra-trades-${todayKey()}.csv`, [cols.join(',')].concat(rows).join('\n'), 'text/csv');
 }
 async function exportBackup() {
@@ -381,7 +379,7 @@ async function importBackup() {
   const fix = list => (list || []).map(n => map[n] || n);
   data.state.trades.forEach(t => t.screenshots = fix(t.screenshots));
   Object.values(data.state.journal || {}).forEach(j => j.screenshots = fix(j.screenshots));
-  S.replaceState(data.state); applyTheme(); render(); toast('Backup restored');
+  S.replaceState(data.state); migrateRatings(); applyTheme(); render(); toast('Backup restored');
 }
 
 /* ===================== DEMO DATA ===================== */
@@ -449,7 +447,7 @@ async function loadDemo() {
       const mistakes = !win && Math.random() < 0.55 ? [pick(st.mistakes)] : (win && Math.random() < 0.08 ? [pick(st.mistakes)] : []);
       const t = { id: S.uid(), demo: true, accountId: acc.id, symbol: Math.random() < 0.88 ? 'MNQ' : 'MES', side, qty, entryTime: t0, exitTime: t1, entryPrice: entry, exitPrice: exit,
         stopPrice: entry - stopPts * dir, targetPrice: entry + stopPts * 2.5 * dir, mfePrice: entry + dir * Math.max(win ? movePts : 0, Math.round(stopPts * (win ? rnd(1, 3.6) : rnd(0, 2.4)) * 4) / 4), fees: '', pnlOverride: '', setup: Math.random() < 0.9 ? sp.id : '',
-        tags: Math.random() < 0.6 ? [pick(st.tags)] : [], mistakes, rating: win ? pick([3, 4, 4, 5]) : pick([1, 2, 3]), notes: pick(notes), screenshots: [],
+        tags: Math.random() < 0.6 ? [pick(st.tags)] : [], mistakes, notes: pick(notes), screenshots: [],
         rulesFollowed: sp.rules.map((_, j) => j).filter(() => !mistakes.length || Math.random() < 0.6), grade: demoGrade(win, mistakes, sp, st), createdAt: new Date().toISOString() };
       if (t.symbol === 'MES') { t.entryPrice = Math.round(t.entryPrice / 3.9 * 4) / 4; t.exitPrice = t.entryPrice + movePts / 3.5 * dir; t.exitPrice = Math.round(t.exitPrice * 4) / 4; t.stopPrice = t.entryPrice - Math.round(stopPts / 3.5 * 4) / 4 * dir; t.targetPrice = ''; t.mfePrice = ''; }
       if (shotsLeft > 0 && Math.random() < 0.18) { t.screenshots.push(await S.saveImage(fakeChart(win, side))); shotsLeft--; }

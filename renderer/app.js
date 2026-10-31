@@ -212,6 +212,7 @@ window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTi
 
 (async () => {
   await S.load();
+  migrateRatings();
   applyTheme();
   ui.calMonth = todayKey().slice(0, 7);
   ui.journalDay = todayKey();

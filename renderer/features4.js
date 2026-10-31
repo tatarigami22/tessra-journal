@@ -93,7 +93,7 @@ function wireGradeField(m, d) {
   }));
 }
 function sessionFieldHtml() {
-  return `<div class="field s2"><label>Session <span class="faint" style="font-weight:500">from the entry time</span></label><div class="sess-auto" id="sessAuto"></div></div>`;
+  return `<div class="field s4"><label>Session <span class="faint" style="font-weight:500">from the entry time</span></label><div class="sess-auto" id="sessAuto"></div></div>`;
 }
 function updateSessionField(m, d) {
   const el = m.querySelector('#sessAuto'); if (!el) return;
@@ -542,4 +542,12 @@ function demoGrade(win, mistakes, sp, st) {
   if (mistakes.length) return Math.random() < 0.7 ? 'C' : 'B';
   if (sp === st.setups[0]) return win ? (Math.random() < 0.6 ? 'A+' : 'A') : (Math.random() < 0.5 ? 'A' : 'B');
   return win ? (Math.random() < 0.5 ? 'A' : 'B') : (Math.random() < 0.5 ? 'B' : 'C');
+}
+// The 1 to 5 star rating was replaced by grades in 1.2.0. Old ratings become grades once, so nothing is lost.
+function migrateRatings() {
+  const st = S.state; if (!st) return;
+  const map = { 5: 'A+', 4: 'A', 3: 'B', 2: 'C', 1: 'C' };
+  let n = 0;
+  for (const t of st.trades) { if (!('rating' in t)) continue; if (+t.rating && !t.grade && map[+t.rating]) t.grade = map[+t.rating]; delete t.rating; n++; }
+  if (n) S.save();
 }

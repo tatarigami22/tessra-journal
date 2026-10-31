@@ -192,7 +192,7 @@ function filteredTrades() {
   });
   const key = {
     date: t => t.exitTime || t.entryTime, symbol: t => t.symbol, side: t => t.side, qty: t => +t.qty, entry: t => +t.entryPrice, exit: t => +t.exitPrice,
-    points: t => S.points(t) ?? -1e9, pnl: t => S.pnl(t), r: t => S.rMultiple(t) ?? -1e9, setup: t => setupName(t.setup), rating: t => +t.rating || 0, hold: t => S.holdMinutes(t) ?? -1, grade: t => { const i = GRADES.findIndex(g => g.id === t.grade); return i < 0 ? -1 : 9 - i; }, session: t => nyMinutes(t) ?? -1
+    points: t => S.points(t) ?? -1e9, pnl: t => S.pnl(t), r: t => S.rMultiple(t) ?? -1e9, setup: t => setupName(t.setup), hold: t => S.holdMinutes(t) ?? -1, grade: t => { const i = GRADES.findIndex(g => g.id === t.grade); return i < 0 ? -1 : 9 - i; }, session: t => nyMinutes(t) ?? -1
   }[f.sort] || (t => t.exitTime);
   ts.sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * f.dir; });
   return ts;

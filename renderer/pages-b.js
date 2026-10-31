@@ -134,7 +134,6 @@ function pageAnalytics() {
   const cs = S.summary(clean), dsum = S.summary(dirty);
   const jd = k => st.journal[k] || {};
   const dayGroup = (field, vals, label) => vals.map(v => ({ name: label(v), trades: days.filter(d => String(jd(d.date)[field]) === String(v)).flatMap(d => d.trades) }));
-  const rating = [5, 4, 3, 2, 1].map(r => ({ name: '★'.repeat(r), trades: list.filter(t => +t.rating === r) }));
   const rulesOk = list.filter(t => { const sp = setupById(t.setup); return sp && sp.rules.length && (t.rulesFollowed || []).length === sp.rules.length; });
   const rulesBroken = list.filter(t => { const sp = setupById(t.setup); return sp && sp.rules.length && (t.rulesFollowed || []).length < sp.rules.length; });
   return head + `<div class="grid g-3">
@@ -145,7 +144,7 @@ function pageAnalytics() {
     <div class="grid g-2 mt">
       <div class="card"><div class="card-h"><div class="card-t">By mistake</div></div>${bkTable(mk, { label: 'Mistake' })}</div>
       <div class="card"><div class="card-h"><div class="card-t">Followed setup rules</div><span class="faint" style="font-size:12px">From the rule checklist on each trade</span></div>${bkTable([{ name: 'All rules checked', color: 'var(--pos)', trades: rulesOk }, { name: 'Broke a rule', color: 'var(--neg)', trades: rulesBroken }], { label: 'Rules', sort: false })}</div>
-      <div class="card"><div class="card-h"><div class="card-t">By trade rating</div></div>${bkTable(rating, { label: 'Rating', sort: false })}</div>
+      <div class="card"><div class="card-h"><div class="card-t">By grade</div></div>${bkTable(gradeGroups(list), { label: 'Grade', sort: false })}</div>
       <div class="card"><div class="card-h"><div class="card-t">Followed the daily plan</div><span class="faint" style="font-size:12px">From the journal</span></div>${bkTable(dayGroup('followedPlan', ['Yes', 'Partly', 'No'], v => v), { label: 'Plan', sort: false })}</div>
       <div class="card"><div class="card-h"><div class="card-t">By mood going in</div></div>${bkTable(dayGroup('mood', [5, 4, 3, 2, 1], v => 'Mood ' + v), { label: 'Mood', sort: false })}</div>
       <div class="card"><div class="card-h"><div class="card-t">By discipline score</div></div>${bkTable(dayGroup('discipline', [5, 4, 3, 2, 1], v => 'Discipline ' + v), { label: 'Score', sort: false })}</div>

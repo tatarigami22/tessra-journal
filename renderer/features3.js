@@ -382,7 +382,7 @@ async function importCSVFlow() {
   refresh();
   m.querySelector('[data-go]').addEventListener('click', () => {
     const acc = m.querySelector('#impAcc').value;
-    for (const t of fresh) { delete t.srcPnl; S.state.trades.push(Object.assign({ id: S.uid(), accountId: acc, stopPrice: '', targetPrice: '', fees: '', pnlOverride: '', setup: '', tags: [], mistakes: [], rating: 0, notes: '', screenshots: [], rulesFollowed: [], createdAt: new Date().toISOString() }, t)); }
+    for (const t of fresh) { delete t.srcPnl; S.state.trades.push(Object.assign({ id: S.uid(), accountId: acc, stopPrice: '', targetPrice: '', fees: '', pnlOverride: '', setup: '', tags: [], mistakes: [], notes: '', screenshots: [], rulesFollowed: [], createdAt: new Date().toISOString() }, t)); }
     S.save(); closeModal(m); render(); toast(`Imported ${fresh.length} trades`);
   });
 }

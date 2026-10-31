@@ -62,6 +62,11 @@ Not sure which Mac you have? Apple menu > About This Mac. "Chip: Apple M..." mea
 - **First-run setup**: new users pick their firm, account and instruments in about a minute.
 - **Pre-trade checklist**: optional. New Trade asks you to tick your checklist and the setup's rules first; skipping tags the trade so you can see what skipping costs.
 - **Menu bar (Mac) / system tray (Windows)**: today's P&L, loss room, trades left and consistency headroom, plus a New trade shortcut.
+- **Sessions and killzones**: every trade is tagged Asia, London, NY pre-market, NY AM, lunch, NY PM or after hours (New York time), plus the ICT London, NY AM and NY PM killzones. Filter by session and see P&L per session in Analytics > Time.
+- **Trade grades**: grade each trade A+, A, B or C, win or lose. Filter and sort by grade, and Analytics > Breakdown shows what your B and C trades cost you.
+- **Trader DNA**: Analytics > Trader DNA reads your trades and names your style (for example "Morning Sniper"), with the patterns behind it, like where your profit comes from and what happens after a loss. Share it as a card.
+- **Payout celebration**: log a payout and get a confetti moment plus a payout share card. Every payout in Accounts has a share button.
+- **Tessra Wrapped**: your year in trading as animated slides (best day, longest green streak, money setup, best session, the leak, payouts, Trader DNA). Open it from Calendar > Year, save slides or the whole thing as a GIF.
 - **Settings**: risk rules, contract specs (point value and fees), tags, mistakes, CSV import, backups.
 
 ## Tips

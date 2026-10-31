@@ -466,3 +466,51 @@ a { color: var(--accent-2); }
 .update-bar b { display: block; font-size: 12.5px; margin-bottom: 2px; }
 .update-bar span { font-size: 11.5px; color: var(--muted); }
 .update-bar:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* ---------- sessions, grades ---------- */
+.sess-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.sess-chip i { font-style: normal; font-size: 9.5px; letter-spacing: .5px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--c) 30%, transparent); color: var(--text); }
+.sess-auto { display: flex; align-items: center; gap: 8px; min-height: 38px; font-size: 12.5px; flex-wrap: wrap; }
+.grade-chip { display: inline-block; min-width: 26px; text-align: center; padding: 2px 7px; border-radius: 7px; font-size: 12px; font-weight: 800; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
+.grade-seg button { font-weight: 800; }
+.grade-seg button.on { background: color-mix(in srgb, var(--c) 22%, transparent) !important; color: var(--c) !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 55%, transparent); }
+
+/* ---------- Trader DNA ---------- */
+.dna-hero { padding: 30px 30px 26px; background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%), var(--panel); }
+.dna-kicker { font: 600 11.5px/1 var(--mono, ui-monospace, monospace); letter-spacing: 3px; color: var(--accent-2); }
+.dna-name { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-top: 12px; line-height: 1.05; }
+.dna-tag { color: var(--muted); font-size: 15px; margin-top: 8px; }
+.dna-list { display: grid; gap: 12px; }
+.dna-ins { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.45; }
+.dna-ins .dot { margin-top: 6px; flex: none; background: var(--info); }
+.dna-ins.pos .dot { background: var(--pos); }
+.dna-ins.neg .dot { background: var(--neg); }
+
+/* ---------- payout celebration ---------- */
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
+.payday { text-align: center; padding: 34px 28px 26px; background: radial-gradient(90% 80% at 50% 0%, rgba(245, 197, 66, .18), transparent 70%); border-radius: 18px; }
+.payday-kicker { font: 600 12px/1 ui-monospace, monospace; letter-spacing: 4px; color: #f5c542; }
+.payday-amt { font-size: 54px; font-weight: 800; letter-spacing: -1.5px; margin-top: 14px; color: var(--pos); text-shadow: 0 0 40px rgba(46, 240, 164, .35); }
+.payday-sub { color: var(--text); font-size: 15px; margin-top: 8px; }
+.payday-total { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+/* ---------- Wrapped ---------- */
+.modal.wrapped { max-width: none; width: auto; background: transparent; border: 0; box-shadow: none; }
+.wrap-shell { display: flex; gap: 22px; align-items: center; }
+.wrap-stage { position: relative; display: flex; flex-direction: column; align-items: center; }
+.wrap-stage canvas { border-radius: 18px; box-shadow: 0 30px 90px rgba(0, 0, 0, .6); cursor: pointer; display: block; }
+.wrap-bars { display: flex; gap: 5px; margin-bottom: 8px; }
+.wrap-bars div { flex: 1; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .18); overflow: hidden; }
+.wrap-bars i { display: block; height: 100%; background: #fff; }
+.wrap-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .45); color: #fff; cursor: pointer; display: grid; place-items: center; }
+.wrap-nav.l { left: -50px; } .wrap-nav.r { right: -50px; }
+.wrap-nav svg { width: 18px; height: 18px; }
+.wrap-side { width: 270px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 18px; padding: 20px; display: grid; gap: 14px; margin-left: 40px; }
+.wrap-acts { display: grid; gap: 8px; }
+.wrap-acts .btn { justify-content: center; }
+.wrap-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 16px; padding: 18px 22px; background: linear-gradient(110deg, rgba(139, 123, 255, .22), rgba(46, 240, 164, .10) 60%, transparent), var(--panel); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.wrap-banner-k { font: 600 11px/1 ui-monospace, monospace; letter-spacing: 3px; color: var(--accent-2); }
+.wrap-banner-t { font-size: 19px; font-weight: 800; margin: 7px 0 4px; }
+.sess-chip.mini { padding: 1px 6px; font-size: 10.5px; margin-left: 4px; vertical-align: 1px; }
+#tradesTable .tbl th, #tradesTable .tbl td { padding-left: 9px; padding-right: 9px; }
+#tradesTable .tbl th:first-child, #tradesTable .tbl td:first-child { padding-left: 14px; }

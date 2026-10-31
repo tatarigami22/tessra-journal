@@ -10,6 +10,7 @@ const Share = (() => {
   const BUILTINS = [['chart', 'Candles'], ['aurora', 'Aurora'], ['pixels', 'Pixels'], ['mono', 'Plain']];
 
   const cfg = () => S.state.share;
+  const EXTRA = {}; // other card kinds (payout, Trader DNA) register here
   const fontsReady = (async () => {
     await brandReady;
     try { await Promise.all(['800 40px "EJ Inter"', '700 40px "EJ Inter"', '500 40px "EJ Inter"', '500 40px "EJ Grotesk"', '700 40px "EJ Grotesk"', '700 40px "EJ Mono"', '500 40px "EJ Mono"'].map(f => document.fonts.load(f))); } catch (e) {}
@@ -573,16 +574,16 @@ const Share = (() => {
     if (c0.avatar) { try { o.avatarImg = await loadImg(await S.readImage(c0.avatar)); } catch (e) {} }
     if (c0.hideDollars) o.hideDollars = true;
     let choice = 'auto', bgData = null, timer = null, tl = [{ fi: 0, progress: 1, pop: 0, delay: 0 }], ti = 0, cur = tl[0], busy = false;
-    const getData = () => kind === 'trade' ? tradeData(S.state.trades.find(t => t.id === ref), o) : kind === 'month' ? monthData(ref, o) : kind === 'week' ? weekData(ref, o) : dayData(ref, o);
+    const getData = () => EXTRA[kind] ? EXTRA[kind].data(ref, o) : kind === 'trade' ? tradeData(S.state.trades.find(t => t.id === ref), o) : kind === 'month' ? monthData(ref, o) : kind === 'week' ? weekData(ref, o) : dayData(ref, o);
     const t = kind === 'trade' ? S.state.trades.find(x => x.id === ref) : null;
     const hasAcc = t && accountById(t.accountId) && Number(accountById(t.accountId).startBalance);
-    const metricOpts = kind === 'trade' ? [['usd', '$ P&L'], ['r', 'R'], ['pts', 'Points']].concat(hasAcc ? [['pct', '% acct']] : []) : [['usd', '$ P&L'], ['r', 'R']];
+    const metricOpts = EXTRA[kind] ? [] : kind === 'trade' ? [['usd', '$ P&L'], ['r', 'R'], ['pts', 'Points']].concat(hasAcc ? [['pct', '% acct']] : []) : [['usd', '$ P&L'], ['r', 'R']];
     const thumbs = () => [`<button class="bg-thumb ${choice === 'auto' ? 'on' : ''}" data-bg="auto" title="Auto: picks from your library by win or loss"><span>Auto</span></button>`]
       .concat(BUILTINS.map(([k, l]) => `<button class="bg-thumb builtin bt-${k} ${choice === 'b:' + k ? 'on' : ''}" data-bg="b:${k}"><span>${l}</span></button>`))
       .concat(cfg().backgrounds.map(b => `<button class="bg-thumb ${choice === 'u:' + b.id ? 'on' : ''}" data-bg="u:${b.id}" title="${esc(b.use === 'any' ? 'Any trade' : b.use === 'win' ? 'Wins' : 'Losses')}"><img src="${S.imageSrc(b.file)}" alt="">${b.kind === 'gif' ? '<i>GIF</i>' : ''}</button>`))
       .concat([`<button class="bg-thumb add" data-bg="add" title="Upload image or GIF">${ICON.plus}</button>`]).join('');
     const segH = (key, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-o="${key}" data-v="${v}" class="${String(o[key]) === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
-    const m = openModal(`<div class="modal-h"><h3>Share ${kind === 'trade' ? 'trade' : kind === 'month' ? 'monthly recap' : kind === 'week' ? 'weekly recap' : 'day'}</h3><button class="btn icon ghost" data-close>${ICON.close}</button></div>
+    const m = openModal(`<div class="modal-h"><h3>Share ${EXTRA[kind] ? EXTRA[kind].title : kind === 'trade' ? 'trade' : kind === 'month' ? 'monthly recap' : kind === 'week' ? 'weekly recap' : 'day'}</h3><button class="btn icon ghost" data-close>${ICON.close}</button></div>
       <div class="share-wrap">
         <div class="share-left"><div class="share-stage"><canvas id="shareCv"></canvas></div>
           <div class="share-actions">
@@ -596,7 +597,7 @@ const Share = (() => {
           <div class="field"><label>Layout</label>${segH('layout', [['spotlight', 'Spotlight'], ['classic', 'Centered']])}</div>
           <div class="field" id="numColF"><label>Number color</label>${segH('numColor', [['white', 'White'], ['result', 'Green / red']])}</div>
           <div class="field"><label>Size</label>${segH('size', Object.entries(SIZES).map(([k, v]) => [k, v[2]]))}</div>
-          <div class="field"><label>Headline</label><div id="metricSeg">${segH('metric', metricOpts)}</div></div>
+          ${metricOpts.length ? `<div class="field"><label>Headline</label><div id="metricSeg">${segH('metric', metricOpts)}</div></div>` : ''}
           <div class="field"><label>Font</label>${segH('font', Object.entries(FONTS).map(([k, v]) => [k, v.label]))}</div>
           <div class="field"><label>Username</label><div class="row" style="gap:10px;align-items:center"><input class="input" id="shareUser" value="${esc(o.username)}" placeholder="@yourname" maxlength="32" style="flex:1"><label class="row" style="gap:6px;cursor:pointer;font-size:13px;white-space:nowrap"><input type="checkbox" id="shareUserOn" ${o.showHandle ? 'checked' : ''} style="accent-color:var(--accent)">Show on card</label></div></div>
           <div class="field"><label>Background</label><div class="bg-grid" id="bgGrid">${thumbs()}</div><span class="hint">Auto uses your Settings library: win backgrounds on green trades, loss backgrounds on red.</span></div>
@@ -661,7 +662,7 @@ const Share = (() => {
       if (!a || busy) return;
       let W, H, d;
       try { [W, H] = SIZES[o.size] || SIZES.banner; d = getData(); } catch (err) { return shareFail('Share', err); }
-      const fname = (kind === 'trade' ? `${d.title}-${S.dayOf(t)}` : kind === 'month' ? `recap-${ref}` : kind === 'week' ? `week-${ref}` : `day-${ref}`).replace(/[^\w-]+/g, '_');
+      const fname = (EXTRA[kind] ? EXTRA[kind].fname(ref, d) : kind === 'trade' ? `${d.title}-${S.dayOf(t)}` : kind === 'month' ? `recap-${ref}` : kind === 'week' ? `week-${ref}` : `day-${ref}`).replace(/[^\w-]+/g, '_');
       if (a.dataset.act === 'gif' || (a.dataset.act === 'airdrop' && isAnimated())) {
         busy = true; const lbl = a.innerHTML;
         try {
@@ -714,5 +715,5 @@ const Share = (() => {
     cfg().backgrounds = cfg().backgrounds.filter(x => x.id !== id); S.save();
   }
 
-  return { open, monthData, weekData, buildTimeline, buildGif, renderCard, tradeData, dayData, addBackgroundFiles, pickBackgrounds, removeBackground, loadBackground, SIZES, FONTS, fontsReady };
+  return { open, register: (k, def) => { EXTRA[k] = def; }, saveBytes, airdrop, copyPng, bytesToB64, drawMark, monthData, weekData, buildTimeline, buildGif, renderCard, tradeData, dayData, addBackgroundFiles, pickBackgrounds, removeBackground, loadBackground, SIZES, FONTS, fontsReady };
 })();

@@ -29,7 +29,9 @@ function openTradeModal(existing, preset = {}) {
       <div class="calc-strip" id="calcStrip"></div>
       <div class="form-grid">
         <div class="field s2"><label>Setup</label><select class="select" data-f="setup"><option value="">No setup</option>${st.setups.map(s => `<option value="${s.id}" ${s.id === d.setup ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>
+        ${gradeFieldHtml(d)}
         <div class="field s2"><label>Trade rating</label><div class="scale" id="ratingScale">${[1, 2, 3, 4, 5].map(n => `<button data-rate="${n}" class="${+d.rating === n ? 'on' : ''}">${n}</button>`).join('')}</div></div>
+        ${sessionFieldHtml()}
         <div class="field s4" id="rulesBox"></div>
         <div class="field s4"><label>Tags</label><div class="row wrap" style="gap:6px">${st.tags.map(t => `<span class="chip toggle ${d.tags.includes(t) ? 'on' : ''}" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}</div></div>
         <div class="field s4"><label>Mistakes</label><div class="row wrap" style="gap:6px">${st.mistakes.map(t => `<span class="chip toggle mistake ${d.mistakes.includes(t) ? 'on' : ''}" data-mistake="${esc(t)}">${esc(t)}</span>`).join('')}</div></div>
@@ -69,6 +71,7 @@ function openTradeModal(existing, preset = {}) {
     d[inp.dataset.f] = v;
     if (inp.dataset.f === 'setup') { d.rulesFollowed = []; rules(); }
     if (inp.dataset.f === 'entryTime' && (!d.exitTime || d.exitTime < v)) { d.exitTime = v; m.querySelector('[data-f=exitTime]').value = v; }
+    if (inp.dataset.f === 'entryTime') updateSessionField(m, d);
     calc();
   }));
   m.querySelectorAll('[data-side]').forEach(b => b.addEventListener('click', () => { d.side = b.dataset.side; m.querySelectorAll('[data-side]').forEach(x => x.classList.toggle('on', x === b)); calc(); }));
@@ -77,6 +80,7 @@ function openTradeModal(existing, preset = {}) {
   m.querySelectorAll('[data-mistake]').forEach(c => c.addEventListener('click', () => { const t = c.dataset.mistake; d.mistakes = d.mistakes.includes(t) ? d.mistakes.filter(x => x !== t) : [...d.mistakes, t]; c.classList.toggle('on'); }));
   m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(m)));
   wireCopyChips(m, d);
+  wireGradeField(m, d); updateSessionField(m, d);
   wireDrop(m.querySelector('.drop'), names => { d.screenshots.push(...names); added.push(...names); shots(); });
   const save = () => {
     if (!d.symbol) return toast('Add a symbol');
@@ -141,6 +145,7 @@ function openTradeDrawer(id) {
         ${kv('Stop', fmtPrice(t.stopPrice))}${kv('Target', fmtPrice(t.targetPrice))}${kv('Planned R', S.plannedR(t) ? num(S.plannedR(t), 1) + 'R' : '-')}
         ${kv('Gross', money(S.gross(t)), cls(S.gross(t)))}${kv('Fees', money(-S.fees(t), false))}${kv('Risk', S.risk(t) ? money(S.risk(t), false) : '-')}
         ${kv('Hold time', fmtHold(S.holdMinutes(t)))}${kv('Rating', t.rating ? stars(t.rating) : '-')}${kv('$ / point', '$' + S.spec(t.symbol).mult)}
+        ${kv('Grade', gradeChip(t.grade))}${kv('Session', sessionChip(t))}${kv('Killzone', killzoneOf(t) ? esc(killzoneOf(t).name.replace(' killzone', '')) : 'Outside')}
       </div></div>
       ${sp ? `<div><div class="seg-label">Setup</div><div class="row"><span class="dot" style="background:${sp.color}"></span><b>${esc(sp.name)}</b>${sp.rules.length ? `<span class="chip ${(t.rulesFollowed || []).length === sp.rules.length ? 'pos' : 'warn'}">${(t.rulesFollowed || []).length}/${sp.rules.length} rules followed</span>` : ''}</div>
         ${sp.rules.length ? `<div class="check-list mt">${sp.rules.map((rl, i) => `<label style="cursor:default"><span class="${(t.rulesFollowed || []).includes(i) ? 'pos' : 'neg'}">${(t.rulesFollowed || []).includes(i) ? ICON.check : ICON.close}</span>${esc(rl)}</label>`).join('')}</div>` : ''}</div>` : ''}
@@ -250,7 +255,8 @@ function openMoneyModal(kind, accountId, pre = {}) {
     d.amount = Number(d.amount);
     if (kind === 'payout') { d.split = S.hasNum(d.split) ? Number(d.split) : 100; d.received = Math.round(d.amount * d.split) / 100; }
     (kind === 'payout' ? S.state.payouts : S.state.expenses).push(d);
-    S.save(); closeModal(m); render(); toast(kind === 'payout' ? 'Payout logged' : 'Expense logged');
+    S.save(); closeModal(m); render();
+    if (kind === 'payout') celebratePayout(d); else toast('Expense logged');
   });
 }
 
@@ -354,9 +360,9 @@ function download(name, content, type = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 function exportCSV() {
-  const cols = ['date', 'entryTime', 'exitTime', 'account', 'symbol', 'side', 'qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'points', 'fees', 'netPnl', 'rMultiple', 'setup', 'tags', 'mistakes', 'rating', 'notes'];
+  const cols = ['date', 'entryTime', 'exitTime', 'account', 'symbol', 'side', 'qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'points', 'fees', 'netPnl', 'rMultiple', 'setup', 'tags', 'mistakes', 'rating', 'grade', 'session', 'notes'];
   const q = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  const rows = S.sortTrades(trades()).map(t => [S.dayOf(t), t.entryTime, t.exitTime, (accountById(t.accountId) || {}).name || '', t.symbol, t.side, t.qty, t.entryPrice, t.exitPrice, t.stopPrice, t.targetPrice, S.points(t) ?? '', S.fees(t).toFixed(2), S.pnl(t).toFixed(2), S.rMultiple(t) === null ? '' : S.rMultiple(t).toFixed(2), setupName(t.setup), (t.tags || []).join('; '), (t.mistakes || []).join('; '), t.rating || '', t.notes || ''].map(q).join(','));
+  const rows = S.sortTrades(trades()).map(t => [S.dayOf(t), t.entryTime, t.exitTime, (accountById(t.accountId) || {}).name || '', t.symbol, t.side, t.qty, t.entryPrice, t.exitPrice, t.stopPrice, t.targetPrice, S.points(t) ?? '', S.fees(t).toFixed(2), S.pnl(t).toFixed(2), S.rMultiple(t) === null ? '' : S.rMultiple(t).toFixed(2), setupName(t.setup), (t.tags || []).join('; '), (t.mistakes || []).join('; '), t.rating || '', t.grade || '', (sessionOf(t) || {}).name || '', t.notes || ''].map(q).join(','));
   download(`tessra-trades-${todayKey()}.csv`, [cols.join(',')].concat(rows).join('\n'), 'text/csv');
 }
 async function exportBackup() {
@@ -425,25 +431,26 @@ async function loadDemo() {
     if (Math.random() < 0.15) continue;
     const k = keyOf(d), acc = k >= acc1.createdAt && Math.random() < 0.5 ? acc1 : acc2;
     const n = 1 + Math.floor(Math.random() * 3.4);
-    let mins = 9 * 60 + 32 + Math.floor(rnd(0, 20));
+    const r0 = Math.random();
+    let mins = (r0 < 0.12 ? 3 * 60 + 5 : r0 < 0.24 ? 13 * 60 + 40 : 9 * 60 + 32) + Math.floor(rnd(0, 20));
     let dayP = 0;
     for (let i = 0; i < n; i++) {
       const sp = pick(st.setups), side = Math.random() < 0.55 ? 'long' : 'short';
       const qty = pick([1, 2, 2, 3, 4]); const stopPts = Math.round(rnd(10, 24) * 4) / 4;
       const edge = sp === st.setups[0] ? 0.6 : sp === st.setups[1] ? 0.52 : 0.44;
-      const win = Math.random() < edge - (i >= 2 ? 0.12 : 0);
+      const win = Math.random() < edge - (i >= 2 ? 0.12 : 0) - (mins >= 13 * 60 ? 0.1 : 0);
       const movePts = win ? Math.round(stopPts * rnd(1, 3.2) * 4) / 4 : -Math.round(stopPts * rnd(0.5, 1) * 4) / 4;
       price += rnd(-60, 60);
       const entry = Math.round(price * 4) / 4, dir = side === 'long' ? 1 : -1;
       const exit = entry + movePts * dir;
       const hold = Math.round(rnd(2, win ? 55 : 25));
-      const t0 = `${k}T${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-      mins += hold; const t1 = `${k}T${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`; mins += Math.floor(rnd(8, 40));
+      const t0 = nyLocalStr(k, mins);
+      mins += hold; const t1 = nyLocalStr(k, mins); mins += Math.floor(rnd(8, 40));
       const mistakes = !win && Math.random() < 0.55 ? [pick(st.mistakes)] : (win && Math.random() < 0.08 ? [pick(st.mistakes)] : []);
       const t = { id: S.uid(), demo: true, accountId: acc.id, symbol: Math.random() < 0.88 ? 'MNQ' : 'MES', side, qty, entryTime: t0, exitTime: t1, entryPrice: entry, exitPrice: exit,
         stopPrice: entry - stopPts * dir, targetPrice: entry + stopPts * 2.5 * dir, mfePrice: entry + dir * Math.max(win ? movePts : 0, Math.round(stopPts * (win ? rnd(1, 3.6) : rnd(0, 2.4)) * 4) / 4), fees: '', pnlOverride: '', setup: Math.random() < 0.9 ? sp.id : '',
         tags: Math.random() < 0.6 ? [pick(st.tags)] : [], mistakes, rating: win ? pick([3, 4, 4, 5]) : pick([1, 2, 3]), notes: pick(notes), screenshots: [],
-        rulesFollowed: sp.rules.map((_, j) => j).filter(() => !mistakes.length || Math.random() < 0.6), createdAt: new Date().toISOString() };
+        rulesFollowed: sp.rules.map((_, j) => j).filter(() => !mistakes.length || Math.random() < 0.6), grade: demoGrade(win, mistakes, sp, st), createdAt: new Date().toISOString() };
       if (t.symbol === 'MES') { t.entryPrice = Math.round(t.entryPrice / 3.9 * 4) / 4; t.exitPrice = t.entryPrice + movePts / 3.5 * dir; t.exitPrice = Math.round(t.exitPrice * 4) / 4; t.stopPrice = t.entryPrice - Math.round(stopPts / 3.5 * 4) / 4 * dir; t.targetPrice = ''; t.mfePrice = ''; }
       if (shotsLeft > 0 && Math.random() < 0.18) { t.screenshots.push(await S.saveImage(fakeChart(win, side))); shotsLeft--; }
       dayP += S.pnl(t);

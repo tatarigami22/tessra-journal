@@ -2,7 +2,7 @@
 const S = Store;
 const ui = {
   page: 'dashboard', account: 'all', dashRange: 'month',
-  tf: { q: '', symbol: '', side: '', setup: '', result: '', tag: '', mistake: '', from: '', to: '', sort: 'date', dir: -1 },
+  tf: { q: '', symbol: '', side: '', setup: '', result: '', tag: '', mistake: '', session: '', grade: '', from: '', to: '', sort: 'date', dir: -1 },
   calMonth: null, calView: 'month', journalDay: null, anTab: 'overview', anRange: 'all', galleryFilter: 'all', accTab: 'accounts'
 };
 

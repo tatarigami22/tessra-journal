@@ -16,13 +16,14 @@ function bkTable(groups, opt = {}) {
 function pageAnalytics() {
   const list = inRange(trades(), ui.anRange);
   const s = S.summary(list);
-  const tabs = [['overview', 'Overview'], ['breakdown', 'Breakdown'], ['distribution', 'Distribution'], ['time', 'Time'], ['psychology', 'Psychology'], ['whatif', 'What-if Lab'], ['sim', 'Simulator']];
+  const tabs = [['overview', 'Overview'], ['breakdown', 'Breakdown'], ['distribution', 'Distribution'], ['time', 'Time'], ['psychology', 'Psychology'], ['dna', 'Trader DNA'], ['whatif', 'What-if Lab'], ['sim', 'Simulator']];
   const head = `<div class="between"><div class="tabs" style="flex:1">${tabs.map(([k, l]) => `<button data-action="an-tab" data-v="${k}" class="${ui.anTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div style="margin-bottom:18px;margin-left:16px">${seg('an-range', [['30d', '30D'], ['90d', '90D'], ['year', 'YTD'], ['all', 'All']], ui.anRange)}</div></div>`;
   if (ui.anTab === 'sim') return head + simulatorTab();
   if (!list.length) return head + `<div class="card"><div class="empty"><h3>No trades in this range</h3><div>Log some trades and come back to see your edge.</div></div></div>`;
   const dayMap = S.byDay(list), days = Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date));
   if (ui.anTab === 'whatif') return head + whatIfTab(list);
+  if (ui.anTab === 'dna') return head + dnaTab(list);
 
   if (ui.anTab === 'overview') {
     const cell = (k, v, c = '') => `<div class="stat-cell"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
@@ -70,6 +71,7 @@ function pageAnalytics() {
       <div class="card"><div class="card-h"><div class="card-t">By position size</div></div>${bkTable(qty, { label: 'Size', sort: false })}</div>
       <div class="card"><div class="card-h"><div class="card-t">By tag</div></div>${bkTable(tags, { label: 'Tag' })}</div>
       <div class="card"><div class="card-h"><div class="card-t">By account</div></div>${bkTable(accs, { label: 'Account' })}</div>
+      ${gradeBreakdownHtml(list)}
     </div>`;
   }
 
@@ -92,7 +94,7 @@ function pageAnalytics() {
         <div class="card"><div class="card-h"><div class="card-t">By hold time</div></div>${bkTable(hold, { label: 'Hold', sort: false })}</div>
         <div class="card"><div class="card-h"><div class="card-t">By hour</div></div>${bkTable(hr, { label: 'Hour', sort: false })}</div>
         <div class="card"><div class="card-h"><div class="card-t">Trade number in the day</div><span class="sub faint" style="font-size:12px">Does your edge fade?</span></div>${bkTable(nthG, { label: 'Trade', sort: false })}</div>
-      </div>`;
+      </div>${sessionsTimeHtml(list)}`;
   }
 
   if (ui.anTab === 'distribution') {
@@ -208,7 +210,7 @@ function pageAccounts() {
     <div class="card flush mt-l"><div class="card-flush-h between"><div class="card-t">Payouts and expenses</div><div class="row"><button class="btn sm" data-action="tax-records">${ICON.download}Tax records</button><button class="btn sm" data-action="new-expense">${ICON.plus}Expense</button><button class="btn sm" data-action="new-payout">${ICON.plus}Payout</button></div></div>
       ${rows.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Account</th><th class="n">Amount</th><th></th></tr></thead><tbody>
       ${rows.map(r => `<tr style="cursor:default"><td>${r.date ? fmtDay(r.date) : '-'}</td><td>${r.kind === 'payout' ? '<span class="chip pos">Payout</span>' : '<span class="chip neg">Expense</span>'}</td><td>${esc(r.desc || (r.kind === 'payout' ? 'Payout' : ''))}</td><td class="muted">${esc((accountById(r.accountId) || {}).name || '-')}</td>
-        <td class="n ${r.kind === 'payout' ? 'pos' : 'neg'}" style="font-weight:700">${r.kind === 'payout' ? '+' : '-'}${money0(r.kind === 'payout' && S.hasNum(r.received) ? r.received : r.amount)}${r.kind === 'payout' && S.hasNum(r.received) && +r.received !== +r.amount ? `<div class="lr-sub" style="font-weight:500">of ${money0(r.amount)} requested</div>` : ''}</td><td class="n">${r.kind !== 'account' ? `<button class="btn icon ghost sm" data-action="delete-${r.kind}" data-id="${r.id}">${ICON.trash}</button>` : '<span class="faint" style="font-size:11px">from account</span>'}</td></tr>`).join('')}
+        <td class="n ${r.kind === 'payout' ? 'pos' : 'neg'}" style="font-weight:700">${r.kind === 'payout' ? '+' : '-'}${money0(r.kind === 'payout' && S.hasNum(r.received) ? r.received : r.amount)}${r.kind === 'payout' && S.hasNum(r.received) && +r.received !== +r.amount ? `<div class="lr-sub" style="font-weight:500">of ${money0(r.amount)} requested</div>` : ''}</td><td class="n" style="white-space:nowrap">${r.kind !== 'account' ? `${r.kind === 'payout' ? `<button class="btn icon ghost sm" title="Share payout card" data-action="share-payout" data-id="${r.id}">${ICON.share}</button>` : ''}<button class="btn icon ghost sm" data-action="delete-${r.kind}" data-id="${r.id}">${ICON.trash}</button>` : '<span class="faint" style="font-size:11px">from account</span>'}</td></tr>`).join('')}
       </tbody></table>` : '<div class="faint" style="padding:0 18px 18px">Log eval fees, resets and payouts to see if your trading business is profitable.</div>'}
     </div>`;
 }

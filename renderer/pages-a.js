@@ -87,6 +87,7 @@ function pageDashboard() {
     ${seg('dash-range', [['today', 'Today'], ['week', 'Week'], ['month', 'Month'], ['year', 'Year'], ['all', 'All']], ui.dashRange)}
   </div>
   ${lockBannerHtml()}
+  ${wrappedBannerHtml()}
   ${(() => { const a = rulesAlerts(tdTrades); return a ? `<div class="grid" style="gap:8px;margin-bottom:16px">${a}</div>` : ''; })()}
   <div class="grid g-6">
     <div class="card kpi"><div class="kpi-label">Net P&L</div><div class="kpi-value ${cls(s.net)}">${money(s.net)}</div><div class="kpi-meta">${s.count} trades · ${money(-s.fees, false)} fees</div></div>
@@ -181,15 +182,17 @@ function filteredTrades() {
     if (f.result && S.result(t) !== f.result) return false;
     if (f.tag && !(t.tags || []).includes(f.tag)) return false;
     if (f.mistake && !(t.mistakes || []).includes(f.mistake)) return false;
+    if (f.session && (f.session.startsWith('kz') ? (f.session === 'kz' ? !killzoneOf(t) : (killzoneOf(t) || {}).id !== f.session) : (sessionOf(t) || {}).id !== f.session)) return false;
+    if (f.grade && (f.grade === '_none' ? gradeOf(t.grade) : t.grade !== f.grade)) return false;
     const d = S.dayOf(t);
     if (f.from && d < f.from) return false;
     if (f.to && d > f.to) return false;
-    if (q && !`${t.symbol} ${t.notes || ''} ${setupName(t.setup)} ${(t.tags || []).join(' ')} ${(t.mistakes || []).join(' ')}`.toLowerCase().includes(q)) return false;
+    if (q && !`${t.symbol} ${t.notes || ''} ${setupName(t.setup)} ${(t.tags || []).join(' ')} ${(t.mistakes || []).join(' ')} ${t.grade ? 'grade:' + t.grade : ''}`.toLowerCase().includes(q)) return false;
     return true;
   });
   const key = {
     date: t => t.exitTime || t.entryTime, symbol: t => t.symbol, side: t => t.side, qty: t => +t.qty, entry: t => +t.entryPrice, exit: t => +t.exitPrice,
-    points: t => S.points(t) ?? -1e9, pnl: t => S.pnl(t), r: t => S.rMultiple(t) ?? -1e9, setup: t => setupName(t.setup), rating: t => +t.rating || 0, hold: t => S.holdMinutes(t) ?? -1
+    points: t => S.points(t) ?? -1e9, pnl: t => S.pnl(t), r: t => S.rMultiple(t) ?? -1e9, setup: t => setupName(t.setup), rating: t => +t.rating || 0, hold: t => S.holdMinutes(t) ?? -1, grade: t => { const i = GRADES.findIndex(g => g.id === t.grade); return i < 0 ? -1 : 9 - i; }, session: t => nyMinutes(t) ?? -1
   }[f.sort] || (t => t.exitTime);
   ts.sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * f.dir; });
   return ts;
@@ -208,16 +211,16 @@ function tradesTableHtml() {
       <div><div class="k">Fees</div><div class="v">${money(-s.fees, false)}</div></div>
     </div>
     ${ts.length ? `<div class="table-wrap" style="max-height:calc(100vh - 290px)"><table class="tbl"><thead><tr>
-      ${th('date', 'Date')}<th>Time</th>${th('symbol', 'Symbol')}${th('side', 'Side')}${th('qty', 'Qty', 1)}${th('entry', 'Entry', 1)}${th('exit', 'Exit', 1)}${th('points', 'Points', 1)}${th('pnl', 'Net P&L', 1)}${th('r', 'R', 1)}${th('hold', 'Hold', 1)}${th('setup', 'Setup')}${th('rating', 'Rating')}<th></th>
+      ${th('date', 'Date')}${th('session', 'Time')}${th('symbol', 'Symbol')}${th('side', 'Side')}${th('qty', 'Qty', 1)}${th('entry', 'Entry', 1)}${th('exit', 'Exit', 1)}${th('points', 'Points', 1)}${th('pnl', 'Net P&L', 1)}${th('r', 'R', 1)}${th('hold', 'Hold', 1)}${th('setup', 'Setup')}${th('grade', 'Grade')}<th></th>
     </tr></thead><tbody>
     ${ts.map(t => { const p = S.pnl(t), pts = S.points(t), st = setupById(t.setup); return `<tr data-action="open-trade" data-id="${t.id}">
-      <td>${fmtDay(S.dayOf(t))}</td><td class="muted">${fmtTime(t.entryTime)}</td><td class="sym">${esc(t.symbol)} ${copyChip(t)}</td><td>${sideTag(t.side)}</td>
+      <td>${fmtDay(S.dayOf(t))}</td><td class="muted" style="white-space:nowrap">${fmtTime(t.entryTime)} ${sessionChip(t, true)}</td><td class="sym">${esc(t.symbol)} ${copyChip(t)}</td><td>${sideTag(t.side)}</td>
       <td class="n">${t.qty}</td><td class="n">${fmtPrice(t.entryPrice)}</td><td class="n">${fmtPrice(t.exitPrice)}</td>
       <td class="n ${cls(pts)}">${pts === null ? '-' : (pts > 0 ? '+' : '') + num(pts, 2)}</td>
       <td class="n ${cls(p)}" style="font-weight:700">${money(p)}</td><td class="n ${cls(S.rMultiple(t) || 0)}">${rFmt(S.rMultiple(t))}</td>
       <td class="n muted">${fmtHold(S.holdMinutes(t))}</td>
       <td>${st ? `<span class="row" style="gap:6px"><span class="dot" style="background:${st.color}"></span>${esc(st.name)}</span>` : '<span class="faint">-</span>'}</td>
-      <td>${t.rating ? stars(t.rating) : '<span class="faint">-</span>'}</td>
+      <td>${gradeChip(t.grade)}</td>
       <td class="faint">${(t.screenshots || []).length ? `<span class="cam">${ICON.camera}</span>` : ''} ${t.notes ? `<span class="cam">${ICON.note}</span>` : ''} ${(t.mistakes || []).length ? `<span class="chip neg" style="padding:1px 7px">${t.mistakes.length}</span>` : ''}</td>
     </tr>`; }).join('')}
     </tbody></table></div>` : `<div class="empty"><h3>No trades match</h3><div>Try clearing the filters or add a trade.</div></div>`}`;
@@ -235,6 +238,8 @@ function pageTrades() {
       <select class="select" data-filter="setup">${opt('', 'All setups', f.setup)}${st.setups.map(s => opt(s.id, s.name, f.setup)).join('')}${opt('_none', 'No setup', f.setup)}</select>
       <select class="select" data-filter="tag">${opt('', 'Any tag', f.tag)}${st.tags.map(t => opt(t, t, f.tag)).join('')}</select>
       <select class="select" data-filter="mistake">${opt('', 'Any mistake', f.mistake)}${st.mistakes.map(t => opt(t, t, f.mistake)).join('')}</select>
+      <select class="select" data-filter="session">${opt('', 'Any session', f.session)}${TRADE_SESSIONS.map(s => opt(s.id, s.name, f.session)).join('')}${opt('kz', 'Any killzone', f.session)}${KILLZONES.map(k => opt(k.id, k.name, f.session)).join('')}</select>
+      <select class="select" data-filter="grade">${opt('', 'Any grade', f.grade)}${GRADES.map(g => opt(g.id, 'Grade ' + g.id, f.grade)).join('')}${opt('_none', 'Not graded', f.grade)}</select>
       <input class="input date" type="date" data-filter="from" value="${f.from}" title="From">
       <input class="input date" type="date" data-filter="to" value="${f.to}" title="To">
       <button class="btn ghost" data-action="clear-filters">Clear</button>
@@ -256,7 +261,7 @@ function pageCalendar() {
     <button class="btn icon" data-action="cal-next">${ICON.right}</button>
     <button class="btn sm" data-action="cal-today">Today</button>
     <div class="spacer"></div>
-    ${ui.calView === 'month' ? `<button class="btn sm" data-action="share-month" data-ym="${ui.calMonth}">${ICON.share}Share month recap</button>` : ''}
+    ${ui.calView === 'month' ? `<button class="btn sm" data-action="share-month" data-ym="${ui.calMonth}">${ICON.share}Share month recap</button>` : `<button class="btn sm primary" data-action="open-wrapped" data-y="${ui.calMonth.slice(0, 4)}">${ICON.spark}${ui.calMonth.slice(0, 4)} Wrapped</button>`}
     ${seg('cal-view', [['month', 'Month'], ['year', 'Year']], ui.calView)}
   </div>`;
   if (ui.calView === 'year') {

@@ -122,26 +122,34 @@ const Store = (() => {
     if (hasNum(t.fees)) return Number(t.fees);
     return Number(t.qty || 0) * spec(t.symbol).fee;
   }
+  // Results can come from prices, or be typed by hand: $ (pnlOverride), points (pointsOverride) or R (rOverride).
+  const hasPrices = t => hasNum(t.entryPrice) && hasNum(t.exitPrice);
+  function manualRisk(t) { if (hasNum(t.riskOverride) && +t.riskOverride > 0) return Number(t.riskOverride); const g = state && state.goals && Number(state.goals.riskPerTrade); return g > 0 ? g : null; }
   function gross(t) {
     if (hasNum(t.pnlOverride)) return Number(t.pnlOverride) + fees(t);
-    if (!hasNum(t.entryPrice) || !hasNum(t.exitPrice)) return 0;
-    const dir = t.side === 'short' ? -1 : 1;
-    return (Number(t.exitPrice) - Number(t.entryPrice)) * dir * Number(t.qty || 0) * spec(t.symbol).mult;
+    if (hasPrices(t)) {
+      const dir = t.side === 'short' ? -1 : 1;
+      return (Number(t.exitPrice) - Number(t.entryPrice)) * dir * Number(t.qty || 0) * spec(t.symbol).mult;
+    }
+    if (hasNum(t.pointsOverride)) return Number(t.pointsOverride) * Number(t.qty || 0) * spec(t.symbol).mult;
+    if (hasNum(t.rOverride)) { const rk = manualRisk(t); return rk ? Number(t.rOverride) * rk + fees(t) : 0; }
+    return 0;
   }
   function pnl(t) {
     if (hasNum(t.pnlOverride)) return Number(t.pnlOverride);
     return gross(t) - fees(t);
   }
   function points(t) {
-    if (!hasNum(t.entryPrice) || !hasNum(t.exitPrice)) return null;
+    if (!hasPrices(t)) return hasNum(t.pointsOverride) ? Number(t.pointsOverride) : null;
     return (Number(t.exitPrice) - Number(t.entryPrice)) * (t.side === 'short' ? -1 : 1);
   }
   function risk(t) {
-    if (!hasNum(t.stopPrice) || !hasNum(t.entryPrice)) return null;
+    if (!hasNum(t.stopPrice) || !hasNum(t.entryPrice)) return hasNum(t.riskOverride) && +t.riskOverride > 0 ? Number(t.riskOverride) : hasNum(t.rOverride) ? manualRisk(t) : null;
     const r = Math.abs(Number(t.entryPrice) - Number(t.stopPrice)) * Number(t.qty || 0) * spec(t.symbol).mult;
     return r > 0 ? r : null;
   }
   function rMultiple(t) {
+    if (hasNum(t.rOverride) && !hasNum(t.pnlOverride) && !hasPrices(t)) return Number(t.rOverride);
     const r = risk(t);
     return r ? pnl(t) / r : null;
   }

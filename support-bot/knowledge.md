@@ -66,3 +66,11 @@ These are the owner's notes for common questions. The current README is added be
 - Tessra Wrapped: year recap slides. Calendar > Year > "Wrapped" button, or the dashboard banner in December and January. Save a slide as PNG or all slides as a GIF; can hide dollar amounts.
 - Share card layouts: Spotlight, Centered, Collectible and Receipt. Collectible trade cards get a rarity from the R multiple (Common, Rare 3R+, Epic 5R+, Legendary 10R+); a trade needs a stop loss for R, so trades without a stop show as Common. Losses get "Took an L" / "Tuition paid" stamps (can be turned off in the share window).
 - Save video exports an MP4 for Instagram and TikTok stories. The small "Made with Tessra" line and the Discord invite on cards can be turned off in the share window.
+
+## New in 1.3.0
+- Customize the trade form: click Customize at the top of the New trade window, then click any field to hide or show it. Presets: Full, Quick, Backtesting. Symbol, side, contracts and entry time always stay. Hidden Fees means new trades get no fees.
+- Result by hand: in the trade form, type the result in $, pts or R (the small dropdown) instead of entry and exit prices. R results use "risk $" if typed, otherwise Settings > risk per trade.
+- Tags, mistakes and setups can be added from the trade form (+ Add chip, "+ New setup..." in the setup dropdown). Right-click a tag or mistake to remove it from the list; trades keep it.
+- Custom fields: Settings > Custom fields, or Customize > Custom field in the trade form. Types: dropdown, yes/no, number, text. Analytics > Breakdown shows a card for each.
+- Firm Matchmaker: Analytics > Firm Matchmaker (or Accounts > "Which firm fits me?"). Needs 15+ trades. Simulates the evaluation and the funded account until the first payout using public rule summaries (October 2026); type the price you'd pay to rank by profit after cost. It is a simulation of past trades, not a guarantee.
+- Edge alerts: shown at the top of the dashboard when something changes in the last 15 trading days. The X hides an alert for 2 weeks. Needs 25+ trades.

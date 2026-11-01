@@ -16,10 +16,11 @@ function bkTable(groups, opt = {}) {
 function pageAnalytics() {
   const list = inRange(trades(), ui.anRange);
   const s = S.summary(list);
-  const tabs = [['overview', 'Overview'], ['breakdown', 'Breakdown'], ['distribution', 'Distribution'], ['time', 'Time'], ['psychology', 'Psychology'], ['dna', 'Trader DNA'], ['whatif', 'What-if Lab'], ['sim', 'Simulator']];
+  const tabs = [['overview', 'Overview'], ['breakdown', 'Breakdown'], ['distribution', 'Distribution'], ['time', 'Time'], ['psychology', 'Psychology'], ['dna', 'Trader DNA'], ['firms', 'Firm Matchmaker'], ['whatif', 'What-if Lab'], ['sim', 'Simulator']];
   const head = `<div class="between"><div class="tabs" style="flex:1">${tabs.map(([k, l]) => `<button data-action="an-tab" data-v="${k}" class="${ui.anTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div style="margin-bottom:18px;margin-left:16px">${seg('an-range', [['30d', '30D'], ['90d', '90D'], ['year', 'YTD'], ['all', 'All']], ui.anRange)}</div></div>`;
   if (ui.anTab === 'sim') return head + simulatorTab();
+  if (ui.anTab === 'firms') return head + matchmakerTab();
   if (!list.length) return head + `<div class="card"><div class="empty"><h3>No trades in this range</h3><div>Log some trades and come back to see your edge.</div></div></div>`;
   const dayMap = S.byDay(list), days = Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date));
   if (ui.anTab === 'whatif') return head + whatIfTab(list);
@@ -72,6 +73,7 @@ function pageAnalytics() {
       <div class="card"><div class="card-h"><div class="card-t">By tag</div></div>${bkTable(tags, { label: 'Tag' })}</div>
       <div class="card"><div class="card-h"><div class="card-t">By account</div></div>${bkTable(accs, { label: 'Account' })}</div>
       ${gradeBreakdownHtml(list)}
+      ${customFieldBreakdownHtml(list)}
     </div>`;
   }
 
@@ -204,7 +206,7 @@ function pageAccounts() {
       <div class="card kpi"><div class="kpi-label">Total payouts</div><div class="kpi-value pos">${money0(paid)}</div><div class="kpi-meta">${st.payouts.length} payout${st.payouts.length === 1 ? '' : 's'}</div></div>
       <div class="card kpi"><div class="kpi-label">Trading business net</div><div class="kpi-value ${cls(paid - spent)}">${money(paid - spent)}</div><div class="kpi-meta">${spent ? 'ROI ' + pct((paid - spent) / spent, 0) : 'Payouts minus costs'}</div></div>
     </div>
-    <div class="between mt-l" style="margin-bottom:14px"><div class="card-t" style="font-size:15px">Accounts</div><button class="btn primary" data-action="new-account">${ICON.plus}New account</button></div>
+    <div class="between mt-l" style="margin-bottom:14px"><div class="card-t" style="font-size:15px">Accounts</div><div class="row"><button class="btn" data-action="open-matchmaker">${ICON.spark}Which firm fits me?</button><button class="btn primary" data-action="new-account">${ICON.plus}New account</button></div></div>
     ${st.accounts.length ? `<div class="grid g-3">${cards}</div>${payoutPlannerHtml()}` : `<div class="card"><div class="empty"><h3>No accounts yet</h3><div>Add your Lucid eval, funded accounts or a personal account to track drawdown, targets and payouts.</div></div></div>`}
     <div class="card flush mt-l"><div class="card-flush-h between"><div class="card-t">Payouts and expenses</div><div class="row"><button class="btn sm" data-action="tax-records">${ICON.download}Tax records</button><button class="btn sm" data-action="new-expense">${ICON.plus}Expense</button><button class="btn sm" data-action="new-payout">${ICON.plus}Payout</button></div></div>
       ${rows.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Account</th><th class="n">Amount</th><th></th></tr></thead><tbody>
@@ -267,6 +269,7 @@ function pageSettings() {
         ${gi('maxTradesPerDay', 'Max trades per day', 'Overtrading guard')}${gi('riskPerTrade', 'Planned risk per trade ($)', 'Reference for sizing')}</div></div>
     <div class="settings-sec"><div><h3>Daily lock</h3><p>When you hit a limit, the app tells you you're done for the day and tags any later trade "Traded after lock". Uses your risk rules above. Resets at midnight.</p></div>
       <div class="check-list">${(() => { const L = lockSettings(); return [['enabled', 'Turn on daily lock'], ['onLoss', `Lock at daily max loss (${g.dailyMaxLoss ? '-$' + g.dailyMaxLoss : 'not set'})`], ['onTarget', `Lock at daily profit target (${g.dailyTarget ? '+$' + g.dailyTarget : 'not set'})`], ['onMaxTrades', `Lock after max trades (${g.maxTradesPerDay || 'not set'})`]].map(([k, l]) => `<label><input type="checkbox" data-lock="${k}" ${L[k] ? 'checked' : ''}>${l}</label>`).join(''); })()}</div></div>
+    ${customFieldsSettingsHtml()}
     ${checklistSettingsHtml()}
     ${menuBarSettingsHtml()}
     <div class="settings-sec"><div><h3>Copy trading</h3><p>Trades copied to several accounts are linked. Each account keeps its own balance, drawdown and payouts.</p></div>

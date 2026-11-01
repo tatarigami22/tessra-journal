@@ -520,6 +520,7 @@ function menuBarPayload() {
   }
   const l = typeof lockStatus === 'function' ? lockStatus() : null;
   if (l) lines.push('Locked for today');
+  try { const al = typeof edgeAlerts === 'function' && S.state.settings.edgeAlerts !== false ? edgeAlerts().filter(a => a.tone === 'neg') : []; if (al[0]) lines.push('Heads up: ' + al[0].title); } catch (e) {}
   const title = td.length ? (net >= 0 ? '+' : '-') + '$' + Math.abs(Math.round(net)).toLocaleString() : '';
   return { enabled: true, title, tooltip: 'Tessra · ' + lines[0], lines };
 }

@@ -9,9 +9,9 @@ function copyAccountsHtml(d) {
   const accs = S.state.accounts.filter(a => a.status !== 'archived');
   if (accs.length < 2) return '';
   const lead = d.copyOf ? S.state.trades.find(x => x.id === d.copyOf) : null;
-  if (lead) return `<div class="field s4"><label>Copy trade</label><div class="lr-sub">This is a copy of the trade on <b>${esc((accountById(lead.accountId) || {}).name || 'another account')}</b>. Edits to notes, setup, tags and prices update every copy. Size stays per account.</div></div>`;
+  if (lead) return `<div class="field s4" data-fk="copy"><label>Copy trade</label><div class="lr-sub">This is a copy of the trade on <b>${esc((accountById(lead.accountId) || {}).name || 'another account')}</b>. Edits to notes, setup, tags and prices update every copy. Size stays per account.</div></div>`;
   const current = groupOf(d.id ? S.state.trades.find(x => x.id === d.id) : null).filter(x => x.id !== d.id).map(x => x.accountId);
-  return `<div class="field s4"><label>Copied to other accounts <span class="faint" style="font-weight:500">one trade per account, stats count it once</span></label>
+  return `<div class="field s4" data-fk="copy"><label>Copied to other accounts <span class="faint" style="font-weight:500">one trade per account, stats count it once</span></label>
     <div class="row wrap" style="gap:6px" id="copyChips">${accs.map(a => `<span class="chip toggle ${current.includes(a.id) ? 'on' : ''}" data-copyacc="${a.id}">${esc(a.name)}</span>`).join('')}</div></div>`;
 }
 function wireCopyChips(m, d) {

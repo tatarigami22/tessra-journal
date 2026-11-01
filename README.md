@@ -67,6 +67,10 @@ Not sure which Mac you have? Apple menu > About This Mac. "Chip: Apple M..." mea
 - **Trader DNA**: Analytics > Trader DNA reads your trades and names your style (for example "Morning Sniper"), with the patterns behind it, like where your profit comes from and what happens after a loss. Share it as a card.
 - **Payout celebration**: log a payout and get a confetti moment plus a payout share card. Every payout in Accounts has a share button.
 - **Tessra Wrapped**: your year in trading as animated slides (best day, longest green streak, money setup, best session, the leak, payouts, Trader DNA). Open it from Calendar > Year, save slides or the whole thing as a GIF.
+- **Your trade form, your way**: Customize on the trade form hides any field you don't use, with Full, Quick and Backtesting presets. Type your result by hand in $, points or R instead of prices (R uses your risk per trade). Add tags, mistakes and setups right from the form, and right-click a tag to remove it.
+- **Custom fields**: make your own inputs (dropdown, yes/no, number or text), like HTF bias or "waited for confirmation". Each one gets a breakdown in Analytics so you can see if it matters.
+- **Firm Matchmaker**: Analytics > Firm Matchmaker replays your real trades through every prop firm's evaluation and funded rules, then ranks them by pass rate, chance of reaching a first payout and average payout. Add what you'd pay to rank by profit after cost.
+- **Edge alerts**: the dashboard and menu bar tell you when something changes in your recent trades, like a session that stopped working, a cold setup, sizing up after losses or more B and C trades.
 - **Settings**: risk rules, contract specs (point value and fees), tags, mistakes, CSV import, backups.
 
 ## Tips

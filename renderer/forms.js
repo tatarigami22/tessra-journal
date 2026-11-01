@@ -14,29 +14,35 @@ function openTradeModal(existing, preset = {}) {
   d.tags = d.tags || []; d.mistakes = d.mistakes || []; d.screenshots = d.screenshots || []; d.rulesFollowed = d.rulesFollowed || [];
   const added = [];
   const syms = [...new Set([...Object.keys(st.contracts), ...st.trades.map(t => t.symbol)])];
-  const f = (k, l, type = 'number', extra = '') => `<div class="field ${extra}"><label>${l}</label><input class="input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-f="${k}" value="${esc(d[k] ?? '')}"></div>`;
-  const m = openModal(`<div class="modal-h"><h3>${existing ? 'Edit trade' : 'New trade'}</h3><button class="btn icon ghost" data-close>${ICON.close}</button></div>
+  const f = (k, l, type = 'number', extra = '', ph = '') => `<div class="field ${extra}" data-fk="${k}"><label>${l}</label><input class="input" type="${type}" ${type === 'number' ? 'step="any"' : ''} data-f="${k}" value="${esc(d[k] ?? '')}" ${ph ? `placeholder="${ph}"` : ''}></div>`;
+  const tf = tradeFormCfg();
+  const unit = S.hasNum(d.pnlOverride) ? 'usd' : S.hasNum(d.pointsOverride) ? 'pts' : S.hasNum(d.rOverride) ? 'r' : (existing ? 'usd' : tf.unit || 'usd');
+  const resVal = unit === 'usd' ? d.pnlOverride : unit === 'pts' ? d.pointsOverride : d.rOverride;
+  const m = openModal(`<div class="modal-h"><h3>${existing ? 'Edit trade' : 'New trade'}</h3><div class="row" style="gap:6px"><button class="btn sm ghost" data-fe-toggle title="Choose which fields this form shows">${ICON.edit}Customize</button><button class="btn icon ghost" data-close>${ICON.close}</button></div></div>
+    <div class="fe-bar" id="feBar"></div>
     <div class="modal-b">
       <div class="form-grid">
-        <div class="field s2"><label>Account</label><select class="select" data-f="accountId"><option value="">No account</option>${st.accounts.map(a => `<option value="${a.id}" ${a.id === d.accountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></div>
+        <div class="field s2" data-fk="account"><label>Account</label><select class="select" data-f="accountId"><option value="">No account</option>${st.accounts.map(a => `<option value="${a.id}" ${a.id === d.accountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></div>
         <div class="field"><label>Symbol</label><input class="input" list="symList" data-f="symbol" value="${esc(d.symbol)}" autofocus style="text-transform:uppercase"><datalist id="symList">${syms.map(s => `<option value="${esc(s)}">`).join('')}</datalist></div>
         <div class="field"><label>Side</label><div class="seg" style="width:100%">${['long', 'short'].map(s => `<button style="flex:1" data-side="${s}" class="${d.side === s ? 'on' : ''}">${s === 'long' ? 'Long' : 'Short'}</button>`).join('')}</div></div>
-        ${f('entryTime', 'Entry time', 'datetime-local', 's2')}${f('exitTime', 'Exit time', 'datetime-local', 's2')}
-        ${f('qty', 'Contracts')}${f('entryPrice', 'Entry price')}${f('exitPrice', 'Exit price')}${f('stopPrice', 'Stop loss')}
-        ${f('targetPrice', 'Target')}<div class="field"><label title="Furthest price in your favor before you exited. Powers fixed-target tests in the What-if Lab.">Best price reached</label><input class="input" type="number" step="any" data-f="mfePrice" value="${esc(d.mfePrice ?? '')}" placeholder="optional"></div><div class="field"><label>Fees</label><input class="input" type="number" step="any" data-f="fees" value="${esc(d.fees ?? '')}" placeholder="auto"></div>
-        <div class="field"><label>Net P&L override</label><input class="input" type="number" step="any" data-f="pnlOverride" value="${esc(d.pnlOverride ?? '')}" placeholder="from prices"></div>
+        <div class="field s2"><label>Entry time</label><input class="input" type="datetime-local" data-f="entryTime" value="${esc(d.entryTime ?? '')}"></div>${f('exitTime', 'Exit time', 'datetime-local', 's2')}
+        <div class="field"><label>Contracts</label><input class="input" type="number" step="any" data-f="qty" value="${esc(d.qty ?? '')}"></div>${f('entryPrice', 'Entry price')}${f('exitPrice', 'Exit price')}${f('stopPrice', 'Stop loss')}
+        ${f('targetPrice', 'Target')}<div class="field" data-fk="mfePrice"><label title="Furthest price in your favor before you exited. Powers fixed-target tests in the What-if Lab.">Best price reached</label><input class="input" type="number" step="any" data-f="mfePrice" value="${esc(d.mfePrice ?? '')}" placeholder="optional"></div>${f('fees', 'Fees', 'number', '', 'auto')}
+        <div class="field" data-fk="result"><label title="Type your result by hand instead of prices: dollars, points or R">Result <span class="faint" style="font-weight:500">by hand</span></label><div class="res-in"><input class="input" type="number" step="any" data-res value="${esc(resVal ?? '')}" placeholder="optional"><select class="select" data-res-unit>${[['usd', '$'], ['pts', 'pts'], ['r', 'R']].map(([v, l]) => `<option value="${v}" ${unit === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+          <input class="input res-risk" type="number" step="any" data-f="riskOverride" value="${esc(d.riskOverride ?? '')}" placeholder="risk $ (default ${S.state.goals.riskPerTrade || 0})" style="${unit === 'r' ? '' : 'display:none'}"></div>
       </div>
-      <div class="calc-strip" id="calcStrip"></div>
+      <div class="calc-strip" id="calcStrip" data-fk="calc"></div>
       <div class="form-grid">
-        <div class="field s2"><label>Setup</label><select class="select" data-f="setup"><option value="">No setup</option>${st.setups.map(s => `<option value="${s.id}" ${s.id === d.setup ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>
+        <div class="field s2" data-fk="setup"><label>Setup</label><select class="select" data-f="setup"><option value="">No setup</option>${st.setups.map(s => `<option value="${s.id}" ${s.id === d.setup ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}<option value="__new">+ New setup...</option></select></div>
         ${gradeFieldHtml(d)}
         ${sessionFieldHtml()}
-        <div class="field s4" id="rulesBox"></div>
-        <div class="field s4"><label>Tags</label><div class="row wrap" style="gap:6px">${st.tags.map(t => `<span class="chip toggle ${d.tags.includes(t) ? 'on' : ''}" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}</div></div>
-        <div class="field s4"><label>Mistakes</label><div class="row wrap" style="gap:6px">${st.mistakes.map(t => `<span class="chip toggle mistake ${d.mistakes.includes(t) ? 'on' : ''}" data-mistake="${esc(t)}">${esc(t)}</span>`).join('')}</div></div>
+        <div class="field s4" id="rulesBox" data-fk="rules"></div>
+        <div class="field s4" data-fk="tags"><label>Tags <span class="faint" style="font-weight:500">right-click a tag to remove it from your list</span></label><div class="row wrap" style="gap:6px" id="tagRow">${chipsHtml('tag', st.tags, d.tags)}</div></div>
+        <div class="field s4" data-fk="mistakes"><label>Mistakes</label><div class="row wrap" style="gap:6px" id="misRow">${chipsHtml('mistake', st.mistakes, d.mistakes)}</div></div>
         ${copyAccountsHtml(d)}
-        <div class="field s4"><label>Notes</label><textarea class="input" data-f="notes" rows="4" placeholder="Why did you take it? How did you manage it? What would you do differently?">${esc(d.notes || '')}</textarea></div>
-        <div class="field s4"><label>Screenshots</label>${dropZone()}<div id="tShots"></div></div>
+        ${customFieldsHtml(d)}
+        <div class="field s4" data-fk="notes"><label>Notes</label><textarea class="input" data-f="notes" rows="4" placeholder="Why did you take it? How did you manage it? What would you do differently?">${esc(d.notes || '')}</textarea></div>
+        <div class="field s4" data-fk="screenshots"><label>Screenshots</label>${dropZone()}<div id="tShots"></div></div>
       </div>
     </div>
     <div class="modal-f"><span class="kbd-hint">${MOD}↵ to save</span><div class="row">${existing ? `<button class="btn danger" data-del>${ICON.trash}Delete</button>` : ''}<button class="btn" data-close>Cancel</button><button class="btn primary" data-save>${existing ? 'Save changes' : 'Add trade'}</button></div></div>`,
@@ -55,6 +61,7 @@ function openTradeModal(existing, preset = {}) {
   const rules = () => {
     const sp = setupById(d.setup), box = m.querySelector('#rulesBox');
     if (!sp || !sp.rules.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+    setTimeout(() => applyFormLayout(m), 0);
     box.style.display = '';
     box.innerHTML = `<label>${esc(sp.name)} checklist <span class="faint" style="font-weight:500">tick the rules you followed</span></label><div class="check-list">${sp.rules.map((r, i) => `<label><input type="checkbox" data-rule="${i}" ${d.rulesFollowed.includes(i) ? 'checked' : ''}>${esc(r)}</label>`).join('')}</div>`;
     box.querySelectorAll('[data-rule]').forEach(cb => cb.addEventListener('change', () => { const i = +cb.dataset.rule; d.rulesFollowed = cb.checked ? [...new Set([...d.rulesFollowed, i])] : d.rulesFollowed.filter(x => x !== i); }));
@@ -68,14 +75,18 @@ function openTradeModal(existing, preset = {}) {
   m.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('input', () => {
     let v = inp.value; if (inp.dataset.f === 'symbol') v = v.toUpperCase();
     d[inp.dataset.f] = v;
+    if (inp.dataset.f === 'setup' && v === '__new') { inp.value = d.setup = ''; inlineNewSetup(m, d, () => { rules(); }); return; }
     if (inp.dataset.f === 'setup') { d.rulesFollowed = []; rules(); }
     if (inp.dataset.f === 'entryTime' && (!d.exitTime || d.exitTime < v)) { d.exitTime = v; m.querySelector('[data-f=exitTime]').value = v; }
     if (inp.dataset.f === 'entryTime') updateSessionField(m, d);
     calc();
   }));
   m.querySelectorAll('[data-side]').forEach(b => b.addEventListener('click', () => { d.side = b.dataset.side; m.querySelectorAll('[data-side]').forEach(x => x.classList.toggle('on', x === b)); calc(); }));
-  m.querySelectorAll('[data-tag]').forEach(c => c.addEventListener('click', () => { const t = c.dataset.tag; d.tags = d.tags.includes(t) ? d.tags.filter(x => x !== t) : [...d.tags, t]; c.classList.toggle('on'); }));
-  m.querySelectorAll('[data-mistake]').forEach(c => c.addEventListener('click', () => { const t = c.dataset.mistake; d.mistakes = d.mistakes.includes(t) ? d.mistakes.filter(x => x !== t) : [...d.mistakes, t]; c.classList.toggle('on'); }));
+  wireChipList(m, d, 'tag', 'tags', '#tagRow');
+  wireChipList(m, d, 'mistake', 'mistakes', '#misRow');
+  wireResultField(m, d, calc);
+  wireCustomFields(m, d);
+  wireFormLayout(m, d, calc);
   m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(m)));
   wireCopyChips(m, d);
   wireGradeField(m, d); updateSessionField(m, d);
@@ -83,9 +94,9 @@ function openTradeModal(existing, preset = {}) {
   const save = () => {
     if (!d.symbol) return toast('Add a symbol');
     if (!S.hasNum(d.qty) || +d.qty <= 0) return toast('Contracts must be above 0');
-    if (!S.hasNum(d.pnlOverride) && (!S.hasNum(d.entryPrice) || !S.hasNum(d.exitPrice))) return toast('Add entry and exit prices, or a P&L override');
+    if (!S.hasNum(d.pnlOverride) && !S.hasNum(d.pointsOverride) && !S.hasNum(d.rOverride) && (!S.hasNum(d.entryPrice) || !S.hasNum(d.exitPrice))) return toast('Add entry and exit prices, or type your result ($, points or R)');
     if (!d.entryTime) return toast('Add an entry time');
-    for (const k of ['qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'mfePrice', 'fees', 'pnlOverride']) d[k] = S.hasNum(d[k]) ? Number(d[k]) : '';
+    for (const k of ['qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'mfePrice', 'fees', 'pnlOverride', 'pointsOverride', 'rOverride', 'riskOverride']) d[k] = S.hasNum(d[k]) ? Number(d[k]) : '';
     d.symbol = d.symbol.toUpperCase().trim();
     const copyTo = d._copyTo || []; delete d._copyTo;
     let target;
@@ -358,9 +369,9 @@ function download(name, content, type = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 function exportCSV() {
-  const cols = ['date', 'entryTime', 'exitTime', 'account', 'symbol', 'side', 'qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'points', 'fees', 'netPnl', 'rMultiple', 'setup', 'tags', 'mistakes', 'grade', 'session', 'notes'];
+  const cols = ['date', 'entryTime', 'exitTime', 'account', 'symbol', 'side', 'qty', 'entryPrice', 'exitPrice', 'stopPrice', 'targetPrice', 'points', 'fees', 'netPnl', 'rMultiple', 'setup', 'tags', 'mistakes', 'grade', 'session', 'notes'].concat(customFields().map(f => f.name));
   const q = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  const rows = S.sortTrades(trades()).map(t => [S.dayOf(t), t.entryTime, t.exitTime, (accountById(t.accountId) || {}).name || '', t.symbol, t.side, t.qty, t.entryPrice, t.exitPrice, t.stopPrice, t.targetPrice, S.points(t) ?? '', S.fees(t).toFixed(2), S.pnl(t).toFixed(2), S.rMultiple(t) === null ? '' : S.rMultiple(t).toFixed(2), setupName(t.setup), (t.tags || []).join('; '), (t.mistakes || []).join('; '), t.grade || '', (sessionOf(t) || {}).name || '', t.notes || ''].map(q).join(','));
+  const rows = S.sortTrades(trades()).map(t => [S.dayOf(t), t.entryTime, t.exitTime, (accountById(t.accountId) || {}).name || '', t.symbol, t.side, t.qty, t.entryPrice, t.exitPrice, t.stopPrice, t.targetPrice, S.points(t) ?? '', S.fees(t).toFixed(2), S.pnl(t).toFixed(2), S.rMultiple(t) === null ? '' : S.rMultiple(t).toFixed(2), setupName(t.setup), (t.tags || []).join('; '), (t.mistakes || []).join('; '), t.grade || '', (sessionOf(t) || {}).name || '', t.notes || ''].concat(customFields().map(f => { const v = (t.custom || {})[f.id]; return v === true ? 'yes' : v === false ? '' : v ?? ''; })).map(q).join(','));
   download(`tessra-trades-${todayKey()}.csv`, [cols.join(',')].concat(rows).join('\n'), 'text/csv');
 }
 async function exportBackup() {

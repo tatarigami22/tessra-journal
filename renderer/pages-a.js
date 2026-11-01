@@ -88,6 +88,7 @@ function pageDashboard() {
   </div>
   ${lockBannerHtml()}
   ${wrappedBannerHtml()}
+  ${edgeAlertsHtml()}
   ${(() => { const a = rulesAlerts(tdTrades); return a ? `<div class="grid" style="gap:8px;margin-bottom:16px">${a}</div>` : ''; })()}
   <div class="grid g-6">
     <div class="card kpi"><div class="kpi-label">Net P&L</div><div class="kpi-value ${cls(s.net)}">${money(s.net)}</div><div class="kpi-meta">${s.count} trades · ${money(-s.fees, false)} fees</div></div>

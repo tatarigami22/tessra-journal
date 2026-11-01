@@ -84,7 +84,7 @@ const GRADES = [
 const gradeOf = id => GRADES.find(g => g.id === id);
 const gradeChip = g => { const x = gradeOf(g); return x ? `<span class="grade-chip" style="--c:${x.color}">${esc(x.id)}</span>` : '<span class="faint">-</span>'; };
 function gradeFieldHtml(d) {
-  return `<div class="field s2"><label>Grade <span class="faint" style="font-weight:500">how good was this trade, win or lose?</span></label><div class="seg grade-seg" style="width:100%">${GRADES.map(g => `<button style="flex:1;--c:${g.color}" data-grade="${g.id}" title="${esc(g.desc)}" class="${d.grade === g.id ? 'on' : ''}">${g.id}</button>`).join('')}</div></div>`;
+  return `<div class="field s2" data-fk="grade"><label>Grade <span class="faint" style="font-weight:500">how good was this trade, win or lose?</span></label><div class="seg grade-seg" style="width:100%">${GRADES.map(g => `<button style="flex:1;--c:${g.color}" data-grade="${g.id}" title="${esc(g.desc)}" class="${d.grade === g.id ? 'on' : ''}">${g.id}</button>`).join('')}</div></div>`;
 }
 function wireGradeField(m, d) {
   m.querySelectorAll('[data-grade]').forEach(b => b.addEventListener('click', () => {
@@ -93,7 +93,7 @@ function wireGradeField(m, d) {
   }));
 }
 function sessionFieldHtml() {
-  return `<div class="field s4"><label>Session <span class="faint" style="font-weight:500">from the entry time</span></label><div class="sess-auto" id="sessAuto"></div></div>`;
+  return `<div class="field s4" data-fk="session"><label>Session <span class="faint" style="font-weight:500">from the entry time</span></label><div class="sess-auto" id="sessAuto"></div></div>`;
 }
 function updateSessionField(m, d) {
   const el = m.querySelector('#sessAuto'); if (!el) return;

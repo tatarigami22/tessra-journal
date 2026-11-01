@@ -4,13 +4,13 @@
 // LucidFlex funded rules (checked Oct 2026): 5 profit days at a size based minimum, request capped at 50% of profit
 // and a per size max, $500 minimum, 90/10 split, up to 5 payouts, EOD trailing MLL locks at start + $100.
 const PAYOUT_PRESETS = {
-  flex25: { label: 'LucidFlex 25K', minProfitDays: 5, minDayProfit: 100, maxPayout: 1000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 25000, dd: 1000, lockOffset: 100, base: 'cycle' },
-  flex50: { label: 'LucidFlex 50K', minProfitDays: 5, minDayProfit: 150, maxPayout: 2000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 50000, dd: 2000, lockOffset: 100, base: 'cycle' },
-  flex100: { label: 'LucidFlex 100K', minProfitDays: 5, minDayProfit: 200, maxPayout: 2500, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 100000, dd: 3000, lockOffset: 100, base: 'cycle' },
-  flex150: { label: 'LucidFlex 150K', minProfitDays: 5, minDayProfit: 250, maxPayout: 3000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 150000, dd: 4500, lockOffset: 100, base: 'cycle' },
-  custom: { label: 'Custom rules', minProfitDays: 5, minDayProfit: 100, maxPayout: 1000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 0, consistencyPct: 0, base: 'cycle' }
+  flex25: { label: 'LucidFlex 25K', minProfitDays: 5, minDayProfit: 100, maxPayout: 1000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 25000, dd: 1000, lockOffset: 100, buffer: 0, base: 'cycle' },
+  flex50: { label: 'LucidFlex 50K', minProfitDays: 5, minDayProfit: 150, maxPayout: 2000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 50000, dd: 2000, lockOffset: 100, buffer: 0, base: 'cycle' },
+  flex100: { label: 'LucidFlex 100K', minProfitDays: 5, minDayProfit: 200, maxPayout: 2500, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 100000, dd: 3000, lockOffset: 100, buffer: 0, base: 'cycle' },
+  flex150: { label: 'LucidFlex 150K', minProfitDays: 5, minDayProfit: 250, maxPayout: 3000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 5, consistencyPct: 0, start: 150000, dd: 4500, lockOffset: 100, buffer: 0, base: 'cycle' },
+  custom: { label: 'Custom rules', minProfitDays: 5, minDayProfit: 100, maxPayout: 1000, payoutPct: 50, minPayout: 500, split: 90, maxPayouts: 0, consistencyPct: 0, buffer: 0, base: 'cycle' }
 };
-const PAYOUT_FIELDS = [['minProfitDays', 'Profit days needed'], ['minDayProfit', 'Min profit per day ($)'], ['maxPayout', 'Max payout per request ($)'], ['payoutPct', 'Max % of profit per request'], ['minPayout', 'Min payout ($)'], ['split', 'Your split (%)'], ['maxPayouts', 'Max payouts (0 = no limit)'], ['consistencyPct', 'Consistency rule % (0 = none)']];
+const PAYOUT_FIELDS = [['minProfitDays', 'Profit days needed'], ['minDayProfit', 'Min profit per day ($)'], ['maxPayout', 'Max payout per request ($)'], ['payoutPct', 'Max % of profit per request'], ['minPayout', 'Min payout ($)'], ['split', 'Your split (%)'], ['maxPayouts', 'Max payouts (0 = no limit)'], ['consistencyPct', 'Consistency rule % (0 = none)'], ['buffer', 'Buffer above start balance ($, 0 = none)']];
 
 function addWeekdays(from, n) {
   const d = new Date(from); let left = n;
@@ -34,7 +34,9 @@ function payoutStatus(acc) {
   const profit = st.balance - start;
   const base = r.base === 'total' ? profit : Math.min(cycleNet, profit);
   const pctCap = Math.max(0, base) * Number(r.payoutPct || 100) / 100;
-  const cap = Math.max(0, Math.floor(Math.min(Number(r.maxPayout) || Infinity, pctCap)));
+  // buffer: the balance has to stay above start + buffer, so only money above that line can be withdrawn
+  const buffer = Number(r.buffer || 0), bufferLine = start + buffer, aboveBuffer = st.balance - bufferLine;
+  const cap = Math.max(0, Math.floor(Math.min(Number(r.maxPayout) || Infinity, pctCap, buffer ? Math.max(0, aboveBuffer) : Infinity)));
   const maxP = Number(r.maxPayouts || 0);
   const largest = cycle.reduce((a, d) => Math.max(a, d.pnl), 0);
   const consPct = Number(r.consistencyPct || 0);
@@ -44,6 +46,7 @@ function payoutStatus(acc) {
     { ok: cycleNet > 0, label: `Cycle net profit positive (${money(cycleNet)})`, key: 'net' },
     { ok: cap >= Number(r.minPayout || 0), label: `Withdrawable at least $${Number(r.minPayout || 0)} (now ${money0(cap)})`, key: 'min' }
   ];
+  if (buffer) checks.splice(2, 0, { ok: aboveBuffer > 0, label: `Balance above the ${money0(bufferLine)} buffer (${aboveBuffer > 0 ? money0(aboveBuffer) + ' above' : money0(-aboveBuffer) + ' to go'})`, key: 'buffer' });
   if (maxP) checks.push({ ok: pays.length < maxP, label: `Payouts used ${pays.length} of ${maxP}`, key: 'count' });
   if (consPct) checks.push({ ok: consOk, label: `Best day under ${consPct}% of cycle profit (${cycleNet > 0 ? Math.round(largest / cycleNet * 100) : 0}%)`, key: 'cons' });
   const eligible = checks.every(c => c.ok);
@@ -57,7 +60,7 @@ function payoutStatus(acc) {
     amount: eligible ? cap : 0, receive: (eligible ? cap : 0) * Number(r.split || 100) / 100,
     capReceive: cap * Number(r.split || 100) / 100,
     toFullPayout: fullNeed ? Math.max(0, fullNeed - (r.base === 'total' ? profit : cycleNet)) : null, fullNeed, baseLabel: r.base === 'total' ? 'account' : 'cycle',
-    payoutNo: pays.length + 1, maxP
+    payoutNo: pays.length + 1, maxP, buffer, bufferLine, aboveBuffer
   };
 }
 
@@ -80,7 +83,8 @@ function payoutPlannerHtml() {
           <div><div class="k">Cycle profit</div><div class="v ${cls(p.cycleNet)}">${money(p.cycleNet)}</div></div>
           <div><div class="k">${p.eligible ? 'Status' : 'Estimated'}</div><div class="v">${p.eligible ? 'Ready' : p.eta ? fmtDay(keyOf(p.eta)) : 'Fix checks'}</div></div>
         </div>
-        ${p.toFullPayout ? `<div class="lr-sub" style="margin-top:10px">${money0(p.toFullPayout)} more ${p.baseLabel} profit unlocks the full ${money0(r.maxPayout)} request.</div>` : `<div class="lr-sub" style="margin-top:10px">${p.baseLabel === 'cycle' ? 'Cycle' : 'Account'} profit covers the full ${money0(r.maxPayout)} request.</div>`}
+        ${p.buffer ? `<div class="lr-sub" style="margin-top:10px">Buffer: balance must stay above <b>${money0(p.bufferLine)}</b>. ${p.aboveBuffer > 0 ? `You're ${money0(p.aboveBuffer)} above it, so that's the most you can take out.` : `You need ${money0(-p.aboveBuffer)} more before any payout.`}</div>` : ''}
+        ${(() => { const need = Math.max(p.toFullPayout || 0, p.buffer && Number(r.maxPayout) ? Number(r.maxPayout) - Math.max(0, p.aboveBuffer) : 0); return !Number(r.maxPayout) ? '' : need > 0 ? `<div class="lr-sub" style="margin-top:10px">${money0(need)} more profit unlocks the full ${money0(r.maxPayout)} request.</div>` : `<div class="lr-sub" style="margin-top:10px">${p.baseLabel === 'cycle' ? 'Cycle' : 'Account'} profit covers the full ${money0(r.maxPayout)} request.</div>`; })()}
         <div class="check-list mt">${p.checks.map(c => `<label style="cursor:default;font-size:12.5px"><span class="${c.ok ? 'pos' : 'faint'}" style="display:grid">${c.ok ? ICON.check : I('<circle cx="12" cy="12" r="8"/>', 15)}</span>${esc(c.label)}</label>`).join('')}</div>
         <div class="row mt"><button class="btn sm ${p.eligible ? 'primary' : ''}" data-action="request-payout" data-id="${a.id}" ${p.eligible ? '' : 'disabled title="Not eligible yet"'}>${ICON.plus}Log payout of ${money0(p.cap)}</button></div>
       </div>`;

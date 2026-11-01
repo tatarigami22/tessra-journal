@@ -109,7 +109,7 @@ const FIRM_PRESETS = [
   { firm: 'Tradeify', plan: 'Select Flex Funded', type: 'funded', dd: 'eod', cons: 0, lock: 100, sizes: { 25: [0, 1000], 50: [0, 2000], 100: [0, 3000], 150: [0, 4500] }, payout: { minProfitDays: 5, minDayProfit: 0, maxPayout: { 25: 1250, 50: 2500, 100: 3500, 150: 4500 }, minPayout: 250, split: 90 } },
   { firm: 'Tradeify', plan: 'Lightning (instant funded)', type: 'funded', dd: 'eod', cons: 20, lock: 100, sizes: { 25: [1500, 1000], 50: [3000, 2000, 1250], 100: [6000, 4000, 2500], 150: [9000, 5250, 3000] }, payout: { minProfitDays: 0, minDayProfit: 0, maxPayout: { 25: 1000, 50: 2000, 100: 2500, 150: 3000 }, minPayout: 1000, split: 90 }, note: 'Consistency is 20% for the first payout, 25% for the second and 30% after that.' },
   { firm: 'Take Profit Trader', plan: 'Test', type: 'eval', dd: 'eod', cons: 50, minDays: 5, sizes: { 25: [1500, 1500], 50: [3000, 2000], 75: [4500, 2500], 100: [6000, 3000], 150: [9000, 4500] } },
-  { firm: 'Take Profit Trader', plan: 'PRO', type: 'funded', dd: 'intraday', cons: 0, sizes: { 25: [0, 1500], 50: [0, 2000], 75: [0, 2500], 100: [0, 3000], 150: [0, 4500] }, payout: { minProfitDays: 0, minDayProfit: 0, maxPayout: 0, minPayout: 0, split: 80 }, note: 'Withdrawals need a buffer of start balance plus max drawdown first.' },
+  { firm: 'Take Profit Trader', plan: 'PRO', type: 'funded', dd: 'intraday', cons: 0, sizes: { 25: [0, 1500], 50: [0, 2000], 75: [0, 2500], 100: [0, 3000], 150: [0, 4500] }, payout: { minProfitDays: 0, minDayProfit: 0, maxPayout: 0, minPayout: 0, split: 80, buffer: { 25: 1500, 50: 2000, 75: 2500, 100: 3000, 150: 4500 } }, note: 'Withdrawals need a buffer of start balance plus max drawdown first (filled in as the payout buffer).' },
   { firm: 'MyFundedFutures', plan: 'Rapid Evaluation', type: 'eval', dd: 'eod', cons: 50, sizes: { 25: [1500, 1000], 50: [3000, 2000], 100: [6000, 3000], 150: [9000, 4500] } },
   { firm: 'MyFundedFutures', plan: 'Rapid Funded', type: 'funded', dd: 'intraday', cons: 0, lock: 100, sizes: { 25: [0, 1000], 50: [0, 2000], 100: [0, 3000], 150: [0, 4500] }, payout: { minProfitDays: 0, minDayProfit: 0, maxPayout: 0, minPayout: 500, split: 90 } },
   { firm: 'MyFundedFutures', plan: 'Builder Evaluation', type: 'eval', dd: 'eod', cons: 0, sizes: { 25: [1500, 1000, 600], 50: [3000, 2000, 1000] } }
@@ -127,7 +127,7 @@ function presetToAccount(p, size) {
   };
   if (p.payout) {
     acc.payout = { enabled: true, preset: 'custom', base: p.payout.base || 'cycle', consistencyPct: p.cons || 0 };
-    for (const k of ['minProfitDays', 'minDayProfit', 'maxPayout', 'payoutPct', 'minPayout', 'split', 'maxPayouts']) acc.payout[k] = pick(p.payout[k], size) || (k === 'payoutPct' ? 100 : k === 'split' ? 90 : 0);
+    for (const k of ['minProfitDays', 'minDayProfit', 'maxPayout', 'payoutPct', 'minPayout', 'split', 'maxPayouts', 'buffer']) acc.payout[k] = pick(p.payout[k], size) || (k === 'payoutPct' ? 100 : k === 'split' ? 90 : 0);
   }
   return acc;
 }

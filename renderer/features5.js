@@ -248,7 +248,7 @@ function mmRunOne(rnd, sample, rules, mode, maxDays) {
     } else {
       if (dayP > 0 && dayP >= (payout.minDayProfit || 0.01)) profitDays++;
       const consOk = !cons || eq <= 0 || best / eq <= cons / 100;
-      const amt = Math.min(payout.maxPayout || Infinity, eq * (payout.payoutPct || 100) / 100);
+      const amt = Math.min(payout.maxPayout || Infinity, eq * (payout.payoutPct || 100) / 100, payout.buffer ? eq - payout.buffer : Infinity);
       if (profitDays >= (payout.minProfitDays || 0) && d >= Math.max(1, minDays || 0) && consOk && amt > 0 && amt >= (payout.minPayout || 0) && eq > lock) return { result: 1, days: d, payout: amt * (payout.split || 90) / 100 };
     }
   }
@@ -260,7 +260,7 @@ function mmRules(p, size) {
   // a cap listed only for some sizes: scale it from the nearest listed size instead of treating it as unlimited
   const cap = v => { if (!v || typeof v !== 'object') return v || 0; if (v[size]) return v[size]; const ks = Object.keys(v).map(Number); if (!ks.length) return 0; const k = ks.sort((a, b) => Math.abs(a - size) - Math.abs(b - size))[0]; return Math.round(v[k] * size / k); };
   return { target, dd, ddType: p.dd, lock: p.lock || 0, dll: dll || 0, cons: p.cons || 0, minDays: p.minDays || 0,
-    payout: p.payout ? { minProfitDays: pick2(p.payout.minProfitDays), minDayProfit: pick2(p.payout.minDayProfit), maxPayout: cap(p.payout.maxPayout), payoutPct: pick2(p.payout.payoutPct) || 100, minPayout: pick2(p.payout.minPayout), split: pick2(p.payout.split) || 90 } : null };
+    payout: p.payout ? { minProfitDays: pick2(p.payout.minProfitDays), minDayProfit: pick2(p.payout.minDayProfit), maxPayout: cap(p.payout.maxPayout), payoutPct: pick2(p.payout.payoutPct) || 100, minPayout: pick2(p.payout.minPayout), split: pick2(p.payout.split) || 90, buffer: pick2(p.payout.buffer) || 0 } : null };
 }
 function mmSample(c) {
   let ts = S.sortTrades(trades());

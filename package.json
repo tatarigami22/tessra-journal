@@ -1,7 +1,7 @@
 {
   "name": "tessra",
   "productName": "Tessra",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Tessra: a desktop trading journal for futures and prop firm traders",
   "main": "main.js",
   "author": "Ethan",

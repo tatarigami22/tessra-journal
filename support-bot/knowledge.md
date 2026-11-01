@@ -74,3 +74,6 @@ These are the owner's notes for common questions. The current README is added be
 - Custom fields: Settings > Custom fields, or Customize > Custom field in the trade form. Types: dropdown, yes/no, number, text. Analytics > Breakdown shows a card for each.
 - Firm Matchmaker: Analytics > Firm Matchmaker (or Accounts > "Which firm fits me?"). Needs 15+ trades. Simulates the evaluation and the funded account until the first payout using public rule summaries (October 2026); type the price you'd pay to rank by profit after cost. It is a simulation of past trades, not a guarantee.
 - Edge alerts: shown at the top of the dashboard when something changes in the last 15 trading days. The X hides an alert for 2 weeks. Needs 25+ trades.
+
+## New in 1.3.1
+- Payout buffer: Edit account > payout rules > "Buffer above start balance". The Payout Planner only counts money above start balance + buffer as withdrawable, so the buffer is still intact after the payout (example: 50K start, $2,600 buffer, balance $53,400 means $800 can be taken out, leaving $52,600). Take Profit Trader PRO presets fill the buffer in automatically.

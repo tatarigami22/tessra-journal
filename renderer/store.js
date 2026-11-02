@@ -249,8 +249,14 @@ const Store = (() => {
   }
 
   /* ---------- accounts ---------- */
+  // Trades that count toward an account's balance. When an eval turns funded, fundedAt marks the reset:
+  // only trades from that moment count, so the funded account starts again at its starting balance.
+  function accountTrades(acc) {
+    const from = acc && acc.type === 'funded' && acc.fundedAt ? String(acc.fundedAt) : '';
+    return state.trades.filter(t => t.accountId === acc.id && (!from || String(t.exitTime || t.entryTime || '') >= from));
+  }
   function accountStatus(acc) {
-    const ts = sortTrades(state.trades.filter(t => t.accountId === acc.id));
+    const ts = sortTrades(accountTrades(acc));
     const pays = state.payouts.filter(p => p.accountId === acc.id);
     const start = Number(acc.startBalance || 0);
     const dd = Number(acc.maxDrawdown || 0);
@@ -286,7 +292,7 @@ const Store = (() => {
     get state() { return state; }, info: () => info, uid, load, save, flush,
     saveImage, imageSrc, readImage, deleteImage,
     rootOf, spec, fees, gross, pnl, points, risk, rMultiple, plannedR, dayOf, holdMinutes, result,
-    localKey, todayKey, sortTrades, summary, byDay, equity, accountStatus, hasNum, defaults,
+    localKey, todayKey, sortTrades, summary, byDay, equity, accountStatus, accountTrades, hasNum, defaults,
     onChange: fn => listeners.push(fn),
     replaceState(s) { state = merge(defaults(), s); save(); }
   };

@@ -17,7 +17,7 @@ function payoutPath(acc) {
   const p = payoutStatus(acc); if (!p) return null;
   const r = p.rules, today = todayKey();
   const goal = acc.payoutGoal || defaultPayoutGoal(p);
-  const tradedToday = S.state.trades.some(t => t.accountId === acc.id && S.dayOf(t) === today);
+  const tradedToday = S.accountTrades(acc).some(t => S.dayOf(t) === today);
   const daysLeft = tradingDaysBetween(tradedToday ? keyOf(new Date(Date.now() + 864e5)) : today, goal);
   const needDays = p.remaining;
   const minDay = Number(r.minDayProfit || 0);

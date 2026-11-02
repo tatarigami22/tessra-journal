@@ -219,6 +219,7 @@ function openAccountModal(existing) {
       ${fi('dailyLossLimit', 'Daily loss limit ($)', 'number', 'Optional')}${fi('minDays', 'Min trading days', 'number', 'Optional')}
       ${fi('consistencyPct', 'Consistency rule (%)', 'number', 'Max share of profit one day can be. Blank = none')}<div></div>
       ${fi('cost', 'Cost of account ($)', 'number', 'Eval or activation fee, counts as an expense')}${fi('createdAt', 'Start date', 'date')}
+      <div class="field" id="fundedFromF" style="grid-column:span 2;${d.type === 'funded' && (d.fundedAt || (existing && existing.type === 'eval')) ? '' : 'display:none'}"><label>Funded from <span class="faint" style="font-weight:500">the balance resets to the starting balance here</span></label><input class="input" type="datetime-local" data-k="fundedAt" value="${esc(d.fundedAt || (existing && existing.type === 'eval' ? nowLocal() : ''))}"><span class="hint">Trades before this count for the evaluation only. They stay in your journal and stats.</span></div>
       <div class="field" style="grid-column:span 2"><label class="row" style="gap:8px;cursor:pointer"><input type="checkbox" data-k="lockAtStart" ${d.lockAtStart !== false ? 'checked' : ''} style="accent-color:var(--accent)"> Trailing drawdown stops trailing once it reaches the lock level</label></div>
       ${payoutRulesFormHtml(d)}
     </div></div>
@@ -226,14 +227,26 @@ function openAccountModal(existing) {
   m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(m)));
   wirePayoutForm(m);
   wireFirmPreset(m, !existing);
+  // switching an evaluation to funded starts the funded balance fresh from now
+  const typeSel = m.querySelector('[data-k=type]'), ff = m.querySelector('#fundedFromF'), fi2 = m.querySelector('[data-k=fundedAt]');
+  typeSel.addEventListener('change', () => {
+    const wasEval = existing && existing.type === 'eval';
+    const show = typeSel.value === 'funded' && (wasEval || !!d.fundedAt);
+    ff.style.display = show ? '' : 'none';
+    if (show && !fi2.value) fi2.value = nowLocal();
+    if (typeSel.value === 'funded') { const t = m.querySelector('[data-k=profitTarget]'); if (t && wasEval) t.value = ''; }
+  });
   m.querySelector('[data-save]').addEventListener('click', () => {
     m.querySelectorAll('[data-k]').forEach(i => { d[i.dataset.k] = i.type === 'checkbox' ? i.checked : i.value; });
     d.payout = readPayoutForm(m);
     d.preset = m.querySelector('[data-firm-preset]').value || d.preset || '';
     d.name = d.name.trim(); if (!d.name) return toast('Name the account');
     for (const k of ['startBalance', 'profitTarget', 'maxDrawdown', 'dailyLossLimit', 'minDays', 'cost', 'lockOffset', 'consistencyPct']) d[k] = S.hasNum(d[k]) ? Number(d[k]) : '';
-    if (existing) Object.assign(S.state.accounts.find(a => a.id === d.id), d); else S.state.accounts.push(d);
-    S.save(); closeModal(m); render(); toast('Account saved');
+    if (d.type !== 'funded' || !d.fundedAt) delete d.fundedAt;
+    const nowFunded = existing && existing.type === 'eval' && d.type === 'funded' && d.fundedAt;
+    if (existing) { const a = S.state.accounts.find(x => x.id === d.id); Object.assign(a, d); if (!d.fundedAt) delete a.fundedAt; } else S.state.accounts.push(d);
+    S.save(); closeModal(m); render();
+    toast(nowFunded ? `Funded! Balance reset to ${money0(d.startBalance)}. Eval trades stay in your journal.` : 'Account saved');
   });
   const del = m.querySelector('[data-del]');
   if (del) del.addEventListener('click', async () => {

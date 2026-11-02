@@ -169,7 +169,7 @@ function consistencyStatus(acc) {
   if (!pctRule || acc.status !== 'active') return null;
   const pays = S.state.payouts.filter(p => p.accountId === acc.id).map(p => p.date).sort();
   const since = acc.type === 'eval' ? null : pays[pays.length - 1] || null;
-  const ts = S.state.trades.filter(t => t.accountId === acc.id && (!since || S.dayOf(t) > since));
+  const ts = S.accountTrades(acc).filter(t => !since || S.dayOf(t) > since);
   const days = Object.values(S.byDay(ts)), today = todayKey(), f = pctRule / 100;
   const total = days.reduce((a, d) => a + d.pnl, 0);
   const tDay = days.find(d => d.date === today), todayPnl = tDay ? tDay.pnl : 0;

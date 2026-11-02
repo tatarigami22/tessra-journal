@@ -77,3 +77,8 @@ These are the owner's notes for common questions. The current README is added be
 
 ## New in 1.3.1
 - Payout buffer: Edit account > payout rules > "Buffer above start balance". The Payout Planner only counts money above start balance + buffer as withdrawable, so the buffer is still intact after the payout (example: 50K start, $2,600 buffer, balance $53,400 means $800 can be taken out, leaving $52,600). Take Profit Trader PRO presets fill the buffer in automatically.
+
+## New in 1.3.2
+- TradeSea order exports import directly (Settings > Import CSV). Only Filled orders count; cancelled or rejected orders are skipped. Symbols like CME:MNQ become MNQ.
+- Day-first dates (3/11/2026 meaning 3 November) are detected automatically. Time zone labels with one meaning (EST, UTC, CET...) are converted; ambiguous ones like IST use the computer's own time zone.
+- If an export starts or ends in the middle of a position, Tessra imports the complete trades and says which part of a fill it couldn't match. Exporting a wider date range fixes that.

@@ -208,7 +208,7 @@ function consistencyDashHtml() {
 const IMPORT_FIELDS = [
   ['symbol', 'Symbol', true], ['side', 'Side (long/short or buy/sell)'], ['qty', 'Quantity'], ['entryPrice', 'Entry price'], ['exitPrice', 'Exit price'],
   ['entryTime', 'Entry time', true], ['exitTime', 'Exit time'], ['pnl', 'P&L (used if prices are missing)'], ['fees', 'Fees / commission'], ['id', 'Trade or fill ID'],
-  ['price', 'Fill price (fills only)'], ['time', 'Fill time (fills only)']
+  ['price', 'Fill price (fills only)'], ['time', 'Fill time (fills only)'], ['status', 'Order status (fills only, keeps Filled rows)']
 ];
 const CANDIDATES = {
   symbol: ['symbol', 'instrument', 'contractname', 'contract', 'ticker', 'underlying', 'product', 'market'],
@@ -222,7 +222,8 @@ const CANDIDATES = {
   fees: ['fees', 'fee', 'commission', 'commissionc', 'commissions'],
   id: ['tradenumber', 'tradeid', 'id', 'fillid', 'orderid', 'ordernumber'],
   price: ['avgfillprice', 'fillprice', 'avgprice', 'execprice', 'price'],
-  time: ['filltime', 'updatetime', 'exectime', 'time', 'datetime', 'date']
+  time: ['filltime', 'updatetime', 'exectime', 'time', 'datetime', 'date'],
+  status: ['status', 'orderstatus', 'state', 'fillstatus']
 };
 const IMPORT_FORMATS = [
   { name: 'NinjaTrader trades', test: h => h.includes('marketpos') && h.includes('entryprice') },
@@ -230,6 +231,7 @@ const IMPORT_FORMATS = [
   { name: 'Sierra Chart trades list', test: h => h.includes('tradetype') && (h.includes('entrydatetime') || h.includes('entryprice')) },
   { name: 'Quantower positions history', test: h => h.includes('openprice') && h.includes('closeprice') },
   { name: 'MotiveWave executions', fills: true, test: h => h.includes('action') && h.includes('price') && h.includes('time') && (h.includes('fillid') || h.includes('orderid') || h.includes('underlying')) && !h.includes('exitprice') },
+  { name: 'TradeSea orders', fills: true, test: h => h.includes('avgprice') && h.includes('side') && h.includes('status') && !h.includes('exitprice') && !h.includes('closeprice') },
   { name: 'Rithmic R|Trader fills', fills: true, test: h => (h.includes('buysell') || h.includes('side')) && (h.includes('avgfillprice') || h.includes('fillprice')) && !h.includes('exitprice') && !h.includes('closeprice') },
   { name: 'Fills / executions', fills: true, test: h => h.some(x => /fillprice|execprice/.test(x)) && !h.includes('exitprice') }
 ];
@@ -243,22 +245,50 @@ function parseDelimited(text, delim) {
   if (delim === ',') return parseCSV(text);
   return text.split(/\r?\n/).filter(l => l.trim()).map(l => l.split(delim).map(x => x.replace(/^"|"$/g, '')));
 }
+const EXCHANGES = /^(CME|CBOT|NYMEX|COMEX|CBOE|CFE|ICE|ICEUS|EUREX|GLOBEX|CME_MINI|CME_MINI_DL|CBOT_MINI|NYMEX_MINI|COMEX_MINI|XCME|XCBT|XNYM|XCEC)[:.]/;
 function cleanSymbol(s) {
-  s = String(s || '').trim().toUpperCase().replace(/^\//, '').replace(/^F\.US\./, '').replace(/^CON\.F\.US\./, '');
+  s = String(s || '').trim().toUpperCase().replace(/^\//, '').replace(/^F\.US\./, '').replace(/^CON\.F\.US\./, '').replace(EXCHANGES, '');
   s = s.split(':')[0].split('.')[0].split(' ')[0].split('-')[0];
   return s;
 }
 // Parse an export timestamp to epoch ms. Understands ISO and M/D/Y layouts, seconds, milliseconds,
 // AM/PM and a trailing offset (Z, +0530, -05:00). Without an offset the time is this computer's local time.
-function parseStamp(s) {
-  s = String(s ?? '').trim(); if (!s) return NaN;
-  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{2})(?::(\d{2})(?:[.,](\d+))?)?\s*(AM|PM)?\s*(Z|[+-]\d{2}:?\d{2})?$/i.exec(s);
+// Time zone names with one clear meaning. Others (IST is India, Israel or Ireland) are read as this computer's time,
+// which is what the exporting platform used when it showed them.
+const TZ_ABBR = { Z: 0, UTC: 0, GMT: 0, WET: 0, BST: 60, CET: 60, CEST: 120, EET: 120, EEST: 180, EST: -300, EDT: -240, CST: -360, CDT: -300, MST: -420, MDT: -360, PST: -480, PDT: -420, JST: 540, AEST: 600, AEDT: 660, SGT: 480, HKT: 480 };
+let IMP_DATE_ORDER = 'mdy';
+// Decide whether slash dates in a file are month/day or day/month: a part over 12 settles it,
+// otherwise pick the reading that lands closest to today without going into the future.
+function detectDateOrder(values) {
+  const parts = values.map(v => /^\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/.exec(String(v || ''))).filter(Boolean);
+  if (!parts.length) return 'mdy';
+  if (parts.some(p => +p[1] > 12)) return 'dmy';
+  if (parts.some(p => +p[2] > 12)) return 'mdy';
+  if (values.some(v => /^\s*\d{1,2}\.\d{1,2}\.\d{2,4}/.test(String(v)))) return 'dmy';
+  const now = Date.now(), score = order => {
+    const ts = parts.map(p => { const y = p[3].length === 2 ? 2000 + +p[3] : +p[3]; return order === 'mdy' ? new Date(y, +p[1] - 1, +p[2]).getTime() : new Date(y, +p[2] - 1, +p[1]).getTime(); });
+    const max = Math.max(...ts), min = Math.min(...ts);
+    return (max > now + 2 * 864e5 ? 1e15 : 0) + (now - max) + (max - min);
+  };
+  return score('dmy') < score('mdy') ? 'dmy' : 'mdy';
+}
+function parseStamp(s, order) {
+  s = String(s ?? '').trim().replace(/\s+/g, ' '); if (!s) return NaN;
+  order = order || IMP_DATE_ORDER;
+  const tail = '\\s*(AM|PM)?\\s*(Z|[+-]\\d{2}:?\\d{2}|(?:GMT|UTC)[+-]\\d{1,2}(?::?\\d{2})?|[A-Za-z]{2,5})?$';
+  let m = new RegExp('^(\\d{4})-(\\d{1,2})-(\\d{1,2})[T ](\\d{1,2}):(\\d{2})(?::(\\d{2})(?:[.,](\\d+))?)?' + tail, 'i').exec(s);
   let y, mo, d, h, mi, sec, ms, ap, off;
   if (m) [, y, mo, d, h, mi, sec, ms, ap, off] = m;
   else {
-    m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})[ T]+(\d{1,2}):(\d{2})(?::(\d{2})(?:[.,](\d+))?)?\s*(AM|PM)?\s*(Z|[+-]\d{2}:?\d{2})?$/i.exec(s);
+    m = new RegExp('^(\\d{1,2})[\\/.\\-](\\d{1,2})[\\/.\\-](\\d{2,4}),?[ T]+(\\d{1,2}):(\\d{2})(?::(\\d{2})(?:[.,](\\d+))?)?' + tail, 'i').exec(s);
     if (!m) { const t = Date.parse(s); return isNaN(t) ? NaN : t; }
-    [, mo, d, y, h, mi, sec, ms, ap, off] = m; if (y.length === 2) y = '20' + y;
+    let a, b; [, a, b, y, h, mi, sec, ms, ap, off] = m; if (y.length === 2) y = '20' + y;
+    if (order === 'dmy') { d = a; mo = b; } else { mo = a; d = b; }
+  }
+  if (off) {
+    const u = off.toUpperCase();
+    if (/^(GMT|UTC)[+-]/.test(u)) off = u.slice(3).replace(/^([+-])(\d)(?!\d)/, '$10$2').replace(/^([+-]\d{2})$/, '$1:00');
+    else if (/^[A-Z]{2,5}$/.test(u) && u !== 'Z') off = u in TZ_ABBR ? (TZ_ABBR[u] >= 0 ? '+' : '-') + String(Math.floor(Math.abs(TZ_ABBR[u]) / 60)).padStart(2, '0') + String(Math.abs(TZ_ABBR[u]) % 60).padStart(2, '0') : null;
   }
   h = +h; if (ap) { if (/pm/i.test(ap) && h < 12) h += 12; if (/am/i.test(ap) && h === 12) h = 0; }
   const msv = ms ? Math.round(+('0.' + ms) * 1000) : 0;
@@ -277,7 +307,7 @@ function guessMapping(h, fmt) {
   const map = {};
   for (const [k] of IMPORT_FIELDS) {
     if (fmt && fmt.fills && (k === 'entryPrice' || k === 'exitPrice' || k === 'exitTime' || k === 'entryTime')) continue;
-    if ((!fmt || !fmt.fills) && (k === 'price' || k === 'time')) continue;
+    if ((!fmt || !fmt.fills) && (k === 'price' || k === 'time' || k === 'status')) continue;
     let i = -1;
     for (const c of CANDIDATES[k]) { i = h.indexOf(c); if (i >= 0) break; }
     if (i < 0) for (const c of CANDIDATES[k]) { if (c.length < 4) continue; i = h.findIndex(x => x.includes(c)); if (i >= 0) break; }
@@ -289,6 +319,7 @@ function guessMapping(h, fmt) {
 const isShort = v => /short|sell|^s$|^sld$|^-1$/i.test(String(v || '').trim());
 function rowsToTrades(rows, map, fills, fmtName) {
   const out = [], get = (r, k) => map[k] === undefined || map[k] < 0 ? '' : r[map[k]];
+  IMP_DATE_ORDER = detectDateOrder(rows.slice(0, 500).flatMap(r => ['time', 'entryTime', 'exitTime'].map(k => get(r, k)).filter(Boolean)));
   if (!fills) {
     for (const r of rows) {
       const sym = cleanSymbol(get(r, 'symbol')); if (!sym) continue;
@@ -307,11 +338,30 @@ function rowsToTrades(rows, map, fills, fmtName) {
     return out;
   }
   // fills: pair round trips flat to flat, per symbol, oldest first
-  const fl = rows.map(r => ({ sym: cleanSymbol(get(r, 'symbol')), short: isShort(get(r, 'side')), qty: Math.abs(parseFloat(String(get(r, 'qty')).replace(/[^0-9.\-]/g, ''))) || 0, price: parseFloat(String(get(r, 'price')).replace(/[^0-9.\-]/g, '')), time: toLocalDT2(get(r, 'time')), ts: parseStamp(get(r, 'time')), fee: Math.abs(moneyNum(get(r, 'fees'))) || 0, id: get(r, 'id') }))
+  const okStatus = r => map.status === undefined || map.status < 0 || !String(get(r, 'status')).trim() || /fill|exec|complete|done|traded/i.test(get(r, 'status')) && !/unfill|partial.*cancel/i.test(get(r, 'status'));
+  const fl = rows.filter(okStatus).map(r => ({ sym: cleanSymbol(get(r, 'symbol')), short: isShort(get(r, 'side')), qty: Math.abs(parseFloat(String(get(r, 'qty')).replace(/[^0-9.\-]/g, ''))) || 0, price: parseFloat(String(get(r, 'price')).replace(/[^0-9.\-]/g, '')), time: toLocalDT2(get(r, 'time')), ts: parseStamp(get(r, 'time')), fee: Math.abs(moneyNum(get(r, 'fees'))) || 0, id: get(r, 'id') }))
     .map((f, i) => Object.assign(f, { i })).filter(f => f.sym && f.qty && !isNaN(f.price) && f.time).sort((a, b) => ((a.ts || 0) - (b.ts || 0)) || a.i - b.i);
-  const pos = {};
+  // Pair each symbol on its own. If a position never goes flat, the export probably starts or ends mid-position:
+  // also try treating "flip" leftovers (a fill bigger than the open position) as closing a position opened before
+  // the file starts, and keep whichever reading leaves less unexplained.
+  out.open = []; out.dropped = [];
+  for (const sym of [...new Set(fl.map(f => f.sym))]) {
+    const sf = fl.filter(f => f.sym === sym);
+    let r = pairFills(sf, fmtName, false);
+    if (r.open.length) {
+      const r2 = pairFills(sf, fmtName, true);
+      const openQ = x => x.open.reduce((a, o) => a + o.qty, 0);
+      if (openQ(r2) < openQ(r) && r2.trades.length >= r.trades.length) r = r2;
+    }
+    out.push(...r.trades); out.open.push(...r.open); out.dropped.push(...r.dropped);
+  }
+  return out;
+}
+function pairFills(fl, fmtName, dropFlips) {
+  const trades = [], dropped = [];
+  const fresh = () => ({ q: 0, entQ: 0, entV: 0, exQ: 0, exV: 0, t0: '', fee: 0, ids: [] });
+  let p = fresh();
   for (const f of fl) {
-    let p = pos[f.sym] || (pos[f.sym] = { q: 0, entQ: 0, entV: 0, exQ: 0, exV: 0, t0: '', fee: 0, ids: [] });
     let left = f.qty; const dir = f.short ? -1 : 1;
     while (left > 0) {
       if (p.q === 0 || Math.sign(p.q) === dir) { p.q += dir * left; p.entQ += left; p.entV += left * f.price; if (!p.t0) p.t0 = f.time; p.fee += f.fee * (left / f.qty); p.ids.push(f.id || f.ts); left = 0; }
@@ -320,13 +370,15 @@ function rowsToTrades(rows, map, fills, fmtName) {
         if (p.q === 0) {
           const t = { symbol: f.sym, side: dir === -1 ? 'long' : 'short', qty: p.entQ, entryPrice: +(p.entV / p.entQ).toFixed(6), exitPrice: +(p.exV / p.exQ).toFixed(6), entryTime: p.t0, exitTime: f.time, importKey: `${fmtName}|${f.sym}|${p.t0}|${p.ids.join(',')}` };
           if (p.fee) t.fees = +p.fee.toFixed(2);
-          out.push(t);
-          p = pos[f.sym] = { q: 0, entQ: 0, entV: 0, exQ: 0, exV: 0, t0: '', fee: 0, ids: [] };
+          trades.push(t);
+          p = fresh();
+          if (dropFlips && left > 0) { dropped.push({ sym: f.sym, qty: left, time: f.time }); left = 0; }
         }
       }
     }
   }
-  return out;
+  const open = p.q !== 0 ? [{ sym: fl[0].sym, qty: Math.abs(p.q), side: p.q > 0 ? 'long' : 'short', since: p.t0 }] : [];
+  return { trades, open, dropped };
 }
 function analyzeImport(text) {
   const legacy = parseTradesCSV(text);
@@ -353,7 +405,7 @@ async function importCSVFlow() {
       ${a.legacy ? '' : `<details ${a.known ? '' : 'open'} style="margin:4px 0 12px"><summary style="cursor:pointer;font-weight:600;font-size:13px">Column matching ${a.known ? '<span class="faint" style="font-weight:500">(auto detected, change if something looks off)</span>' : ''}</summary>
         <div class="grid g-2" style="margin-top:10px">
           <div class="field"><label>File type</label><select class="select" id="impMode"><option value="trades" ${a.fills ? '' : 'selected'}>One row per trade</option><option value="fills" ${a.fills ? 'selected' : ''}>One row per fill (pair buys and sells)</option></select></div><div></div>
-          ${IMPORT_FIELDS.map(([k, l]) => `<div class="field imp-f" data-for="${['price', 'time'].includes(k) ? 'fills' : ['entryPrice', 'exitPrice', 'entryTime', 'exitTime'].includes(k) ? 'trades' : 'both'}"><label>${l}</label><select class="select" data-imap="${k}"><option value="-1">Not in file</option>${a.headers.map((hd, i) => `<option value="${i}" ${a.map[k] === i ? 'selected' : ''}>${esc(hd || 'Column ' + (i + 1))}</option>`).join('')}</select></div>`).join('')}
+          ${IMPORT_FIELDS.map(([k, l]) => `<div class="field imp-f" data-for="${['price', 'time', 'status'].includes(k) ? 'fills' : ['entryPrice', 'exitPrice', 'entryTime', 'exitTime'].includes(k) ? 'trades' : 'both'}"><label>${l}</label><select class="select" data-imap="${k}"><option value="-1">Not in file</option>${a.headers.map((hd, i) => `<option value="${i}" ${a.map[k] === i ? 'selected' : ''}>${esc(hd || 'Column ' + (i + 1))}</option>`).join('')}</select></div>`).join('')}
         </div></details>`}
       <div class="field"><label>Assign to account</label><select class="select" id="impAcc"><option value="">No account</option>${S.state.accounts.map(x => `<option value="${x.id}" ${ui.account === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
       <div class="table-wrap" style="max-height:260px" id="impPrev"></div>
@@ -374,6 +426,8 @@ async function importCSVFlow() {
     m.querySelector('#impSum').innerHTML = parsed.length
       ? `<div class="alert info">${ICON.check}<div>Detected <b>${esc(a.format)}</b> in ${esc(file.name)}: ${parsed.length} trades, ${fresh.length} new${parsed.length - fresh.length ? `, ${parsed.length - fresh.length} already imported (skipped)` : ''}. Estimated net ${money(sum)}.</div></div>`
       : `<div class="alert warn">${ICON.warn}<div>No trades found with these columns. Match at least Symbol, Entry time and prices (or P&L).</div></div>`;
+    if (parsed.dropped && parsed.dropped.length) m.querySelector('#impSum').innerHTML += `<div class="alert info" style="margin-top:8px">${ICON.warn}<div>${parsed.dropped.map(o => `${o.qty} ${esc(o.sym)} of the fill at ${esc(String(o.time).replace('T', ' '))}`).join(', ')} closed a position opened before this file starts, so that part isn't imported. Export a wider date range to get the full trade.</div></div>`;
+    if (parsed.open && parsed.open.length) m.querySelector('#impSum').innerHTML += `<div class="alert warn" style="margin-top:8px">${ICON.warn}<div>${parsed.open.map(o => `${o.qty} ${esc(o.sym)} ${o.side} from ${esc(String(o.since).replace('T', ' '))}`).join(', ')} never closes in this file, so those fills aren't a finished trade yet. Export a wider date range that includes where the position was opened and closed, then import again. Trades you already imported are skipped.</div></div>`;
     m.querySelector('#impPrev').innerHTML = `<table class="tbl"><thead><tr><th>Entry</th><th>Symbol</th><th>Side</th><th class="n">Qty</th><th class="n">Entry</th><th class="n">Exit</th><th class="n">Net</th></tr></thead><tbody>
       ${fresh.slice(0, 40).map(t => `<tr style="cursor:default"><td>${esc(String(t.entryTime).replace('T', ' '))}</td><td class="sym">${esc(t.symbol)}</td><td>${sideTag(t.side)}</td><td class="n">${t.qty}</td><td class="n">${fmtPrice(t.entryPrice)}</td><td class="n">${fmtPrice(t.exitPrice)}</td><td class="n ${cls(S.pnl(t))}">${money(S.pnl(t))}</td></tr>`).join('')}</tbody></table>`;
     const go = m.querySelector('[data-go]'); go.disabled = !fresh.length; go.textContent = `Import ${fresh.length} trades`;

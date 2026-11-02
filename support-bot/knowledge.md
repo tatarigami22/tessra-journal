@@ -82,3 +82,8 @@ These are the owner's notes for common questions. The current README is added be
 - TradeSea order exports import directly (Settings > Import CSV). Only Filled orders count; cancelled or rejected orders are skipped. Symbols like CME:MNQ become MNQ.
 - Day-first dates (3/11/2026 meaning 3 November) are detected automatically. Time zone labels with one meaning (EST, UTC, CET...) are converted; ambiguous ones like IST use the computer's own time zone.
 - If an export starts or ends in the middle of a position, Tessra imports the complete trades and says which part of a fill it couldn't match. Exporting a wider date range fixes that.
+
+## New in 1.4.0
+- Session Copilot: "Today's game plan" card at the top of the dashboard, plus a pop-up the first time Tessra opens each day (only if no trades yet today). Built from the user's own trades: best and worst session, max trades before the edge fades, what to do after a red day, daily limits, and per account consistency headroom, drawdown room and payout progress. Gets specific after 20 trades. Turn off or stop the pop-up in Settings > Session Copilot.
+- Payout Path: inside each Payout Planner card on the Accounts page. Pick "Get paid by" a date; it lists the profit days still needed, the profit needed for the full payout and roughly how much a day, the biggest day the consistency rule allows, and shows On track / Behind / Ready.
+- Share card layouts are now Spotlight, Centered, Poster, Collectible, Receipt, Newspaper, Arcade and Terminal. "Chart sketch" (checkbox in the share window) draws a price line from the trade's real entry, exit, stop and best price with Entry and Exit markers. It is a sketch built from the trade's prices, not real tick data. Day, week and month cards draw the equity line instead.

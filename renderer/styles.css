@@ -544,3 +544,16 @@ a { color: var(--accent-2); }
 .edge-al { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); }
 .edge-al .dot { margin-top: 6px; flex: none; background: var(--info); }
 .edge-al.neg .dot { background: var(--neg); } .edge-al.pos .dot { background: var(--pos); }
+
+.layout-grid .seg { flex-wrap: wrap; height: auto; }
+.layout-grid .seg button { flex: 1 0 22%; }
+
+/* ---------- 1.4.0: Session Copilot, Payout Path ---------- */
+.copilot { margin-bottom: 16px; background: radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%), var(--panel); }
+.cp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; }
+.copilot.big .cp-list { grid-template-columns: 1fr; }
+.cp-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; }
+.cp-row .dot { margin-top: 6px; flex: none; background: var(--info); }
+.cp-row.pos .dot { background: var(--pos); } .cp-row.neg .dot { background: var(--neg); }
+.ppath { margin-top: 14px; padding: 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.ppath-steps { margin: 8px 0 6px 18px; padding: 0; font-size: 12.8px; line-height: 1.55; }

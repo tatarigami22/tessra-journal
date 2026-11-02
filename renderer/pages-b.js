@@ -269,6 +269,7 @@ function pageSettings() {
         ${gi('maxTradesPerDay', 'Max trades per day', 'Overtrading guard')}${gi('riskPerTrade', 'Planned risk per trade ($)', 'Reference for sizing')}</div></div>
     <div class="settings-sec"><div><h3>Daily lock</h3><p>When you hit a limit, the app tells you you're done for the day and tags any later trade "Traded after lock". Uses your risk rules above. Resets at midnight.</p></div>
       <div class="check-list">${(() => { const L = lockSettings(); return [['enabled', 'Turn on daily lock'], ['onLoss', `Lock at daily max loss (${g.dailyMaxLoss ? '-$' + g.dailyMaxLoss : 'not set'})`], ['onTarget', `Lock at daily profit target (${g.dailyTarget ? '+$' + g.dailyTarget : 'not set'})`], ['onMaxTrades', `Lock after max trades (${g.maxTradesPerDay || 'not set'})`]].map(([k, l]) => `<label><input type="checkbox" data-lock="${k}" ${L[k] ? 'checked' : ''}>${l}</label>`).join(''); })()}</div></div>
+    ${copilotSettingsHtml()}
     ${customFieldsSettingsHtml()}
     ${checklistSettingsHtml()}
     ${menuBarSettingsHtml()}

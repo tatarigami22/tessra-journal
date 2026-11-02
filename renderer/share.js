@@ -13,7 +13,7 @@ const Share = (() => {
   const EXTRA = {}; // other card kinds (payout, Trader DNA) register here
   const fontsReady = (async () => {
     await brandReady;
-    try { await Promise.all(['800 40px "EJ Inter"', '700 40px "EJ Inter"', '500 40px "EJ Inter"', '500 40px "EJ Grotesk"', '700 40px "EJ Grotesk"', '700 40px "EJ Mono"', '500 40px "EJ Mono"'].map(f => document.fonts.load(f))); } catch (e) {}
+    try { await Promise.all(['800 40px "EJ Inter"', '700 40px "EJ Inter"', '500 40px "EJ Inter"', '500 40px "EJ Grotesk"', '700 40px "EJ Grotesk"', '700 40px "EJ Mono"', '500 40px "EJ Mono"', '400 40px "Instrument Serif"', '400 40px "Newsreader"', '600 40px "Newsreader"', '500 40px "Plex Mono"', '600 40px "Plex Mono"'].map(f => document.fonts.load(f))); } catch (e) {}
   })();
 
   /* ---------- seeded random ---------- */
@@ -172,7 +172,8 @@ const Share = (() => {
     const receipt = [[`${t.qty}x ${t.symbol} ${t.side === 'short' ? 'SHORT' : 'LONG'}`, ''], ['ENTRY', fmtPrice(t.entryPrice)], ['EXIT', fmtPrice(t.exitPrice)], ['POINTS', pts(pt) || '-'], ['R MULTIPLE', rr(r) || '-'], ['HOLD', fmtHold(S.holdMinutes(t))]]
       .concat(o.hideDollars ? [] : [['FEES', '-$' + S.fees(t).toFixed(2)]]).concat(sp ? [['SETUP', sp.name.toUpperCase()]] : []).concat(t.grade ? [['GRADE', t.grade]] : []);
     return {
-      rarity, badges: tradeBadges(t, rarity), receipt, receiptHead: `${md}  ${fmtTime(t.entryTime)}`,
+      rarity, badges: tradeBadges(t, rarity), receipt, receiptHead: `${md}  ${fmtTime(t.entryTime)}`, sketch: tradeSketch(t), side: t.side,
+      posterTitle: `${t.symbol} ${t.side === 'short' ? 'Short' : 'Long'} · ${parseKey(S.dayOf(t)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
       kind: 'trade', seed: t.id, result: S.result(t), title: t.symbol,
       subtitle: `${t.side === 'short' ? 'SHORT' : 'LONG'} · ${parseKey(S.dayOf(t)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}`,
       tiles: [{ k: 'Entry', v: fmtPrice(t.entryPrice) }, { k: 'Exit', v: fmtPrice(t.exitPrice) }, { k: 'Size', v: t.qty + (t.qty == 1 ? ' contract' : ' contracts') }, metric === 'r' ? (o.hideDollars ? { k: 'Points', v: pts(pt) || '-' } : { k: 'Net P&L', v: usd(p) }) : { k: 'Return', v: rr(r) || pts(pt) || '-' }],
@@ -201,6 +202,8 @@ const Share = (() => {
     const receipt = S.sortTrades(ts).slice(0, 9).map(t => [`${fmtTime(t.entryTime)} ${S.rootOf(t.symbol)} ${t.side === 'short' ? 'S' : 'L'} x${t.qty}`, o.hideDollars ? (rr(S.rMultiple(t)) || (S.result(t) === 'win' ? 'WIN' : S.result(t) === 'loss' ? 'LOSS' : 'BE')) : usd(S.pnl(t))]).concat(ts.length > 9 ? [[`+${ts.length - 9} MORE`, '']] : []).concat([['WIN RATE', pct(s.winRate, 0)]]);
     return {
       rarity: s.net > 0.004 ? Object.assign({}, RARITY[2], { label: 'GREEN DAY' }) : null,
+      sketch: (() => { const st = S.sortTrades(ts); let c = 0; const v = [0].concat(st.map(t => (c += o.hideDollars ? (S.rMultiple(t) || 0) : S.pnl(t)))); let bi = 0, bv = -Infinity; st.forEach((t, i) => { if (S.pnl(t) > bv) { bv = S.pnl(t); bi = i + 1; } }); return seriesSketch(v, st.length > 1 ? [{ i: bi, t: 'Best' }, { i: st.length, t: 'Close' }] : [{ i: 1, t: 'Close' }]); })(),
+      posterTitle: parseKey(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
       receipt, receiptHead: fmtLongDay(date).toUpperCase(), badges: [streak >= 2 ? { t: streak + '-DAY GREEN STREAK', c: POS } : null, s.count ? { t: `${s.wins}W ${s.losses}L`, c: '#ffffff' } : null].filter(Boolean),
       subtitle: `DAY RECAP · ${parseKey(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}`,
       kind: 'day', seed: date, result: s.net > 0.004 ? 'win' : s.net < -0.004 ? 'loss' : 'be', title: syms,
@@ -223,6 +226,7 @@ const Share = (() => {
     const dayLine = d => [fmtDay(d.date).toUpperCase() + `  ${d.trades.length}T`, o.hideDollars ? (rr(d.trades.reduce((a, t) => a + (S.rMultiple(t) || 0), 0)) || '-') : usd(d.pnl)];
     return {
       rarity: s.net > 0.004 ? Object.assign({}, RARITY[1], { label: 'GREEN WEEK' }) : null,
+      sketch: seriesSketch(curve, best ? [{ i: days.indexOf(best) + 1, t: 'Best day' }] : []),
       receipt: days.map(dayLine).concat([['GREEN DAYS', `${green}/${days.length}`], ['WIN RATE', pct(s.winRate, 0)]]), receiptHead: `WEEK OF ${md(d0).toUpperCase()}`,
       badges: [green === days.length && days.length >= 3 ? { t: 'GREEN WEEK', c: POS } : null, { t: `${s.count} TRADES`, c: '#ffffff' }].filter(Boolean),
       subtitle: `WEEKLY RECAP · ${ws.slice(0, 4)}`,
@@ -254,6 +258,7 @@ const Share = (() => {
     let eq = 0; const curve = [0].concat(days.map(d => (eq += metric === 'r' ? d.trades.reduce((a, t) => a + (S.rMultiple(t) || 0), 0) : d.pnl)));
     return {
       rarity: s.net > 0.004 ? Object.assign({}, RARITY[1], { label: 'GREEN MONTH' }) : null,
+      sketch: seriesSketch(curve, best ? [{ i: days.indexOf(best) + 1, t: 'Best day' }] : []),
       receipt: [['TRADES', String(s.count)], ['TRADING DAYS', String(days.length)], ['GREEN DAYS', `${green}/${days.length}`], ['WIN RATE', pct(s.winRate, 0)], ['PROFIT FACTOR', s.count ? pf(s.profitFactor) : '-'], ['BEST DAY', best ? (o.hideDollars ? fmtDay(best.date) : usd(best.pnl)) : '-'], ['TOP SETUP', bySetup ? bySetup.x.name.toUpperCase() : '-']].concat(o.hideDollars ? [] : [['FEES', '-$' + s.fees.toFixed(2)]]),
       receiptHead: `${MONTHS[m - 1].toUpperCase()} ${y}`, badges: [{ t: `${green}/${days.length} GREEN DAYS`, c: POS }],
       subtitle: `MONTHLY RECAP · ${ym.slice(0, 4)}`,
@@ -282,7 +287,7 @@ const Share = (() => {
     ctx.save();
     ctx.textBaseline = 'alphabetic'; ctx.letterSpacing = '0px'; ctx.shadowColor = 'transparent'; ctx.textAlign = 'left';
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-    if (bgFrame) drawCover(ctx, bgFrame, W, H); else drawBuiltin(ctx, W, H, o.builtin || 'chart', d);
+    if (bgFrame) drawCover(ctx, bgFrame, W, H); else drawBuiltin(ctx, W, H, (o.builtin || 'chart') === 'chart' && d.sketch && o.sketch !== false ? 'aurora' : o.builtin || 'chart', d);
     ctx.fillStyle = `rgba(0,0,0,${o.dim * 0.6})`; ctx.fillRect(0, 0, W, H);
     // readability: dark from the left, plus soft top and bottom bands
     const lg = ctx.createLinearGradient(0, 0, Math.max(W * 0.62, 700 * u), 0);
@@ -328,6 +333,10 @@ const Share = (() => {
       ctx.font = `${F.txtW} ${vs}px ${F.num}`; ctx.fillStyle = '#fff'; ctx.fillText(t.v, x + 21 * u, y + 70 * u);
     });
     const by = ty0 + Math.ceil(tiles.length / 2) * (tH + gap) + 8 * u;
+    if (d.sketch && o.sketch !== false) {
+      if (W / H > 1.2) { const sx = Math.max(W * 0.5, M + 2 * tW + gap + 70 * u); if (W - M - sx > 220 * u) drawSketch(ctx, sx, hy + 90 * u, W - M - sx, Math.min(H * 0.5, ty0 + 2 * tH - hy - 60 * u), d.sketch, o, u); }
+      else { const sy = by + 90 * u, sh = Math.min(380 * u, H - 150 * u - sy); if (sh > 140 * u) drawSketch(ctx, M + 20 * u, sy + 40 * u, W - 2 * M - 40 * u, sh - 40 * u, d.sketch, o, u); }
+    }
     if (d.badges && by + 30 * u < H - 110 * u) drawBadges(ctx, M, by, d.badges, u, Math.min(W - 2 * M, 760 * u), false);
     if (d.result === 'loss' && o.lossFlair !== false) drawStamp(ctx, W - M - 170 * u, H * 0.4, d.kind === 'trade' ? 'TOOK AN L' : 'TUITION PAID', '#ff4d63', 54 * u, -0.18);
     drawCredit(ctx, W, H, u, o, H - 22 * u);
@@ -459,7 +468,8 @@ const Share = (() => {
     const ax = ix + pad, ay = y + 40 * u, aw = iw - 2 * pad, ah = ih * 0.42;
     ctx.save(); ctx.beginPath(); ctx.roundRect(ax, ay, aw, ah, 16 * u); ctx.clip();
     if (bgFrame) { ctx.save(); ctx.translate(ax, ay); drawCover(ctx, bgFrame, aw, ah); ctx.restore(); }
-    else { ctx.save(); ctx.translate(ax, ay); drawBuiltin(ctx, aw, ah, o.builtin && o.builtin !== 'mono' ? o.builtin : (loss ? 'storm' : 'chart'), d); ctx.restore(); }
+    else { ctx.save(); ctx.translate(ax, ay); drawBuiltin(ctx, aw, ah, o.builtin && o.builtin !== 'mono' ? o.builtin : (loss ? 'storm' : d.sketch && o.sketch !== false ? 'aurora' : 'chart'), d); ctx.restore(); }
+    if (d.sketch && o.sketch !== false) drawSketch(ctx, ax + 40 * u, ay + 56 * u, aw - 80 * u, ah - 96 * u, d.sketch, o, u, { pinSize: 18 });
     if (loss) { // rain
       const rnd = seedRng(d.seed + 'rain'); ctx.strokeStyle = 'rgba(170,200,255,.35)'; ctx.lineWidth = 2 * u;
       for (let i = 0; i < 70; i++) { const rx = ax + rnd() * aw, ry = ay + ((rnd() * ah + phase * ah * 2) % ah); ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 8 * u, ry + 26 * u); ctx.stroke(); }
@@ -587,6 +597,298 @@ const Share = (() => {
     ctx.restore();
   }
 
+  /* ---------- Chart sketch: a price line drawn from the trade's own numbers ---------- */
+  // Built from real entry, exit, stop, best price reached and side. It is a sketch, not tick data.
+  function tradeSketch(t) {
+    const E = +t.entryPrice, X = +t.exitPrice;
+    if (!S.hasNum(t.entryPrice) || !S.hasNum(t.exitPrice)) return null;
+    const dir = t.side === 'short' ? -1 : 1, rnd = seedRng('sk' + t.id);
+    const St = S.hasNum(t.stopPrice) ? +t.stopPrice : null, B = S.hasNum(t.mfePrice) ? +t.mfePrice : null;
+    const win = (X - E) * dir > 0;
+    const best = B !== null ? B : win ? X + (X - E) * 0.18 : E + dir * Math.abs(X - E) * 0.35;
+    const span = Math.max(Math.abs(best - E), Math.abs(X - E), St !== null ? Math.abs(St - E) : 0, Math.abs(E) * 0.0002, 0.0001);
+    const N = 72, ie = 30, ipk = win ? 52 : 38, ix = 58, pts = [];
+    const noise = a => (rnd() - 0.5) * span * a;
+    // before entry: price drifts in from the side you are trading against, with a wick past the entry
+    let p = E - dir * span * (0.55 + rnd() * 0.4);
+    for (let i = 0; i < ie; i++) { const k = i / ie; p += (E - dir * span * 0.08 * Math.sin(k * 7) - p) * 0.12 + noise(0.32); pts.push(p); }
+    pts.push(E);
+    // after entry: towards the best price, then to the exit
+    for (let i = ie + 1; i <= ipk; i++) { const k = (i - ie) / (ipk - ie); pts.push(E + (best - E) * k + noise(0.22) * (1 - k * 0.6)); }
+    if (!win) { for (let i = ipk + 1; i < ix; i++) { const k = (i - ipk) / (ix - ipk); pts.push(best + (X - best) * k + noise(0.2)); } }
+    else { for (let i = ipk + 1; i < ix; i++) { const k = (i - ipk) / (ix - ipk); pts.push(best + (X - best) * k + noise(0.16)); } }
+    pts.push(X);
+    p = X; for (let i = ix + 1; i < N; i++) { p += noise(0.3) - (p - X) * 0.08; pts.push(p); }
+    const pins = [{ i: ie, t: 'Entry' }, { i: ix, t: 'Exit' }];
+    return { pts, pins, levels: [E, X].concat(St !== null ? [St] : []), stop: St };
+  }
+  function seriesSketch(values, labels) {
+    if (!values || values.length < 2) return null;
+    const pts = [], rnd = seedRng('ser' + values.join(','));
+    const span = Math.max(...values.map(Math.abs), 1);
+    for (let i = 0; i < values.length - 1; i++) for (let j = 0; j < 6; j++) { const k = j / 6; pts.push(values[i] + (values[i + 1] - values[i]) * k + (j ? (rnd() - 0.5) * span * 0.08 : 0)); }
+    pts.push(values[values.length - 1]);
+    return { pts, pins: (labels || []).map(l => ({ i: l.i * 6, t: l.t })), dots: values.map((_, i) => i * 6).slice(1), levels: [0] };
+  }
+  function drawSketch(ctx, x, y, w, h, sk, o, u, style = {}) {
+    if (!sk || !sk.pts.length) return;
+    const prog = o.progress == null ? 1 : o.progress, all = sk.pts.concat(sk.levels || []);
+    const lo = Math.min(...all), hi = Math.max(...all), rng = hi - lo || 1;
+    const px = i => x + i / (sk.pts.length - 1) * w, py = v => y + h - (v - lo) / rng * h;
+    const upto = Math.max(1, Math.round((sk.pts.length - 1) * (1 - Math.pow(1 - prog, 2))));
+    const color = style.color || '#ffffff';
+    ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (style.step) { // pixel / terminal look: square steps
+      ctx.strokeStyle = color; ctx.lineWidth = (style.width || 4) * u; ctx.beginPath();
+      for (let i = 0; i <= upto; i++) { const X = Math.round(px(i) / (6 * u)) * 6 * u, Y = Math.round(py(sk.pts[i]) / (6 * u)) * 6 * u; if (!i) ctx.moveTo(X, Y); else { ctx.lineTo(X, ctx._lastY ?? Y); ctx.lineTo(X, Y); } ctx._lastY = Y; }
+      ctx.stroke(); ctx._lastY = undefined;
+    } else if (style.dots) { // newspaper halftone
+      ctx.fillStyle = color;
+      for (let i = 0; i <= upto; i++) { const X = px(i), Y = py(sk.pts[i]); for (let yy = Y; yy < y + h; yy += 7 * u) { const r = 2.3 * u * (1 - (yy - Y) / (h + 1) * 0.85); ctx.beginPath(); ctx.arc(X, yy, Math.max(0.6 * u, r), 0, Math.PI * 2); ctx.fill(); } }
+      ctx.strokeStyle = color; ctx.lineWidth = 3 * u; ctx.beginPath(); for (let i = 0; i <= upto; i++) i ? ctx.lineTo(px(i), py(sk.pts[i])) : ctx.moveTo(px(i), py(sk.pts[i])); ctx.stroke();
+    } else {
+      if (sk.stop != null && style.levels !== false) { ctx.setLineDash([8 * u, 8 * u]); ctx.strokeStyle = hexA(NEG, .55); ctx.lineWidth = 2 * u; ctx.beginPath(); ctx.moveTo(x, py(sk.stop)); ctx.lineTo(x + w, py(sk.stop)); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.shadowColor = style.glow || 'rgba(255,255,255,.55)'; ctx.shadowBlur = 14 * u;
+      ctx.strokeStyle = color; ctx.lineWidth = (style.width || 4.2) * u; ctx.beginPath();
+      for (let i = 0; i <= upto; i++) i ? ctx.lineTo(px(i), py(sk.pts[i])) : ctx.moveTo(px(i), py(sk.pts[i]));
+      ctx.stroke(); ctx.shadowBlur = 0;
+      for (const i of (sk.dots || [])) if (i <= upto) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px(i), py(sk.pts[i]), 5 * u, 0, Math.PI * 2); ctx.fill(); }
+    }
+    // pills with a pointer above (or below near the top)
+    if (style.pins !== false) for (const pin of sk.pins || []) {
+      if (pin.i > upto) continue;
+      const X = px(pin.i), Y = py(sk.pts[pin.i]);
+      ctx.font = `700 ${(style.pinSize || 22) * u}px ${style.pinFont || '"EJ Inter"'}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const tw = ctx.measureText(pin.t).width + 28 * u, th = (style.pinSize || 22) * 1.75 * u, below = Y - th - 18 * u < y - 30 * u;
+      const by = below ? Y + 16 * u : Y - th - 16 * u, bx = Math.min(Math.max(X - tw / 2, x - 20 * u), x + w - tw + 20 * u);
+      ctx.fillStyle = style.pinBg || '#ffffff'; ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10 * u;
+      ctx.beginPath(); ctx.roundRect(bx, by, tw, th, (style.pinRound ?? 9) * u); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.beginPath(); if (below) { ctx.moveTo(X - 7 * u, by + 1); ctx.lineTo(X, Y + 5 * u); ctx.lineTo(X + 7 * u, by + 1); } else { ctx.moveTo(X - 7 * u, by + th - 1); ctx.lineTo(X, Y - 5 * u); ctx.lineTo(X + 7 * u, by + th - 1); } ctx.fill();
+      ctx.fillStyle = style.pinInk || '#111'; ctx.fillText(pin.t, bx + tw / 2, by + th / 2 + 1 * u);
+    }
+    ctx.restore(); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  }
+  const kicker = d => ({ trade: 'TRADE', day: 'DAILY', week: 'WEEKLY', month: 'MONTHLY', payout: 'PAYOUT', dna: 'TRADER DNA', firms: 'FIRM MATCH' }[d.kind] || 'TESSRA');
+  const posterTitle = d => d.posterTitle || d.title;
+
+  /* ---------- Poster: centered, minimal, big number over your background ---------- */
+  function renderPoster(ctx, W, H, bgFrame, d, o) {
+    const u = Math.min(W, H) / 1080, F = FONTS[o.font] || FONTS.clean, prog = o.progress == null ? 1 : o.progress, pop = o.pop || 0;
+    const col = d.result === 'loss' ? NEG : d.result === 'win' ? POS : NEU, numCol = o.numColor === 'result' ? col : '#ffffff';
+    ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.letterSpacing = '0px'; ctx.shadowColor = 'transparent';
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    if (bgFrame) drawCover(ctx, bgFrame, W, H); else drawBuiltin(ctx, W, H, o.builtin || (d.result === 'loss' ? 'storm' : 'aurora'), d);
+    ctx.fillStyle = `rgba(0,0,0,${0.12 + o.dim * 0.7})`; ctx.fillRect(0, 0, W, H);
+    const cx = W / 2, nRows = Math.min(4, (d.stats || []).length), hasSk = !!(o.sketch !== false && d.sketch);
+    let skH = hasSk ? Math.min(H * 0.3, 380 * u) : 0;
+    const need = () => 140 * u + skH + 150 * u + 90 * u + nRows * 58 * u + 70 * u + 60 * u;
+    if (need() > H - 60 * u && hasSk) skH = Math.max(150 * u, skH - (need() - (H - 60 * u)));
+    const top = Math.max(50 * u, (H - need()) / 2);
+    ctx.textAlign = 'center'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 16 * u;
+    ctx.font = `500 ${24 * u}px "EJ Inter"`; ctx.letterSpacing = `${3 * u}px`; ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillText(kicker(d), cx, top + 20 * u); ctx.letterSpacing = '0px';
+    ctx.font = `${F.txtW} ${52 * u}px ${F.txt}`; ctx.fillStyle = '#fff'; ctx.fillText(d.posterTitle || d.title, cx, top + 86 * u);
+    // sketch
+    const sk = hasSk ? d.sketch : null, skY = top + 140 * u, skW = Math.min(W * 0.62, 760 * u);
+    if (sk) drawSketch(ctx, cx - skW / 2, skY + 30 * u, skW, skH - 30 * u, sk, o, u);
+    // headline
+    const hy = (sk ? skY + skH : top + 140 * u) + 150 * u;
+    const head = prog < 1 && d.headFmt && d.headNum != null && isFinite(d.headNum) ? d.headFmt(d.headNum * (1 - Math.pow(1 - prog, 3))) : d.headline;
+    const hs = fitFont(ctx, d.headline, F.numW, F.num, 190 * u, W - 120 * u, 60 * u);
+    ctx.save(); ctx.textAlign = 'center'; ctx.font = `${F.numW} ${hs}px ${F.num}`; ctx.fillStyle = numCol; ctx.shadowColor = numCol === '#ffffff' ? 'rgba(0,0,0,.5)' : hexA(col, .6); ctx.shadowBlur = 30 * u;
+    if (pop) { ctx.translate(cx, hy - hs * 0.35); ctx.scale(1 + .05 * pop, 1 + .05 * pop); ctx.translate(-cx, -(hy - hs * 0.35)); }
+    ctx.fillText(head, cx, hy); ctx.restore();
+    // label / value list
+    let ly = hy + 90 * u;
+    const rows = (d.stats || []).slice(0, 4);
+    ctx.font = `500 ${30 * u}px "EJ Inter"`;
+    rows.forEach(s => {
+      ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.62)'; ctx.fillText(s.k.charAt(0) + s.k.slice(1).toLowerCase(), cx - 30 * u, ly);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `700 ${30 * u}px "EJ Inter"`; ctx.fillText(s.v, cx + 30 * u, ly); ctx.font = `500 ${30 * u}px "EJ Inter"`;
+      ly += 58 * u;
+    });
+    // footer: Tessra x avatar handle
+    const fy = Math.min(H - 80 * u, ly + 70 * u);
+    ctx.font = `800 ${32 * u}px "EJ Inter"`; const tw = ctx.measureText('Tessra').width;
+    ctx.font = `700 ${30 * u}px "EJ Inter"`; const hw = o.handle ? ctx.measureText(o.handle).width : 0;
+    const total = 44 * u + tw + (o.handle ? 50 * u + (o.avatarImg ? 52 * u : 0) + hw + (o.verified ? 34 * u : 0) : 0);
+    let fx = cx - total / 2; ctx.textAlign = 'left';
+    drawMark(ctx, fx, fy - 30 * u, 36 * u); fx += 44 * u;
+    ctx.font = `800 ${32 * u}px "EJ Inter"`; ctx.fillStyle = '#fff'; ctx.fillText('Tessra', fx, fy); fx += tw;
+    if (o.handle) {
+      ctx.font = `500 ${26 * u}px "EJ Inter"`; ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillText('×', fx + 14 * u, fy - 2 * u); fx += 50 * u;
+      if (o.avatarImg) { const r = 22 * u; ctx.save(); ctx.beginPath(); ctx.arc(fx + r, fy - 11 * u, r, 0, Math.PI * 2); ctx.clip(); const im = o.avatarImg, s2 = Math.max(2 * r / im.width, 2 * r / im.height); ctx.drawImage(im, fx + r - im.width * s2 / 2, fy - 11 * u - im.height * s2 / 2, im.width * s2, im.height * s2); ctx.restore(); fx += 52 * u; }
+      ctx.font = `700 ${30 * u}px "EJ Inter"`; ctx.fillStyle = '#fff'; ctx.fillText(o.handle, fx, fy); fx += hw + 10 * u;
+      if (o.verified) { ctx.fillStyle = '#2ecc71'; ctx.beginPath(); ctx.arc(fx + 12 * u, fy - 10 * u, 13 * u, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * u; ctx.beginPath(); ctx.moveTo(fx + 6 * u, fy - 10 * u); ctx.lineTo(fx + 10.5 * u, fy - 5.5 * u); ctx.lineTo(fx + 18 * u, fy - 14 * u); ctx.stroke(); }
+    }
+    if (d.result === 'loss' && o.lossFlair !== false) drawStamp(ctx, cx + Math.min(W * 0.31, 380 * u) - 40 * u, (sk ? skY + skH : top + 120 * u) - 10 * u, d.kind === 'trade' ? 'TOOK AN L' : 'TUITION PAID', '#ff4d63', 38 * u, -0.12);
+    ctx.shadowColor = 'transparent';
+    drawCredit(ctx, W, H, u, o, Math.min(H - 26 * u, fy + 48 * u));
+    ctx.restore();
+  }
+
+  /* ---------- Newspaper: front page of The Tessra Times ---------- */
+  function newsHeadline(d, o) {
+    const n = d.headline, who = 'LOCAL TRADER';
+    if (d.kind === 'payout') return [`PROP FIRM PAYS ${who} ${o.hideDollars ? 'IN FULL' : n.replace('+', '')}`, 'Funded account delivers; desk celebrates quietly'];
+    if (d.kind === 'dna') return [`STUDY NAMES ${who} A "${String(d.headline).toUpperCase()}"`, d.sub || ''];
+    if (d.kind === 'firms') return [`${who} FINDS PERFECT PROP FIRM`, d.sub || ''];
+    if (d.result === 'loss') return [d.kind === 'trade' ? `${d.title} HUMBLES ${who}` : `MARKETS HUMBLE ${who}`, `Losses held to ${n}; "tuition paid," sources say`];
+    if (d.result === 'be') return [`${who} WALKS AWAY EVEN`, 'Capital protected, patience praised'];
+    if (d.kind === 'trade') return [`${d.title} ${d.side === 'short' ? 'SELL-OFF' : 'RALLY'} HANDS ${who} ${n}`, `${d.sub || ''}`];
+    return [`${who} CLOSES ${kicker(d) === 'DAILY' ? 'THE DAY' : kicker(d) === 'WEEKLY' ? 'THE WEEK' : 'THE MONTH'} ${n}`, d.sub || ''];
+  }
+  function wrapLines(ctx, text, maxW) { const words = String(text).split(' '), out = []; let line = ''; for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; } if (line) out.push(line); return out; }
+  function renderNews(ctx, W, H, bgFrame, d, o) {
+    const u = Math.min(W, H) / 1080, prog = o.progress == null ? 1 : o.progress;
+    const ink = '#1b1a17', paper = '#efe9dc', M = Math.max(56 * u, W * 0.05);
+    ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.letterSpacing = '0px'; ctx.shadowColor = 'transparent';
+    const pg = ctx.createLinearGradient(0, 0, W, H); pg.addColorStop(0, '#f3eee3'); pg.addColorStop(1, '#e4ddcc'); ctx.fillStyle = pg; ctx.fillRect(0, 0, W, H);
+    const rnd = seedRng('paper' + d.seed); ctx.fillStyle = 'rgba(80,60,30,.05)'; for (let i = 0; i < 900; i++) ctx.fillRect(rnd() * W, rnd() * H, 1.5 * u, 1.5 * u);
+    let y = M + 30 * u;
+    ctx.fillStyle = ink; ctx.textAlign = 'center';
+    ctx.font = `500 ${18 * u}px "Plex Mono", "EJ Mono"`; ctx.letterSpacing = `${2 * u}px`;
+    const dateLine = (d.subtitle || '').toUpperCase();
+    ctx.textAlign = 'left'; ctx.fillText('VOL. 1 · NO. ' + (Math.floor(seedRng(d.seed)() * 900) + 100), M, y); ctx.textAlign = 'right'; ctx.fillText('PRICE: 1 TICK', W - M, y); ctx.letterSpacing = '0px';
+    y += 20 * u; ctx.fillRect(M, y, W - 2 * M, 2 * u);
+    y += 12 * u;
+    const mast = 'The Tessra Times', ms = fitFont(ctx, mast, 400, '"Instrument Serif", "Newsreader", serif', 120 * u, W - 2 * M, 40 * u);
+    ctx.textAlign = 'center'; ctx.font = `400 ${ms}px "Instrument Serif", "Newsreader", serif`; ctx.fillText(mast, W / 2, y + ms * 0.85);
+    y += ms + 4 * u; ctx.fillRect(M, y, W - 2 * M, 5 * u); ctx.fillRect(M, y + 9 * u, W - 2 * M, 1.5 * u);
+    y += 36 * u; ctx.font = `600 ${17 * u}px "Plex Mono", "EJ Mono"`; ctx.letterSpacing = `${2.5 * u}px`; ctx.fillText(`${dateLine}${o.handle ? '  ·  REPORTING: ' + o.handle.toUpperCase() : ''}`, W / 2, y); ctx.letterSpacing = '0px';
+    y += 20 * u; ctx.fillRect(M, y, W - 2 * M, 1.5 * u);
+    // headline
+    const [hl, deck] = newsHeadline(d, o);
+    let hs = 92 * u; ctx.font = `600 ${hs}px "Newsreader", serif`;
+    let lines = wrapLines(ctx, hl, W - 2 * M);
+    while (lines.length > 3 && hs > 40 * u) { hs -= 6 * u; ctx.font = `600 ${hs}px "Newsreader", serif`; lines = wrapLines(ctx, hl, W - 2 * M); }
+    y += hs * 1.05;
+    for (const l of lines) { ctx.fillText(l, W / 2, y); y += hs * 1.02; }
+    ctx.font = `italic 400 ${34 * u}px "Newsreader", serif`; ctx.fillStyle = '#3c3830';
+    for (const l of wrapLines(ctx, deck, W - 2 * M).slice(0, 2)) { ctx.fillText(l, W / 2, y + 4 * u); y += 42 * u; }
+    y += 18 * u; ctx.fillStyle = ink; ctx.fillRect(M, y, W - 2 * M, 1.5 * u); y += 26 * u;
+    // two columns: figure + article
+    const wide = W / H > 0.95, colGap = 34 * u, figW = wide ? (W - 2 * M) * 0.55 : W - 2 * M, figH = Math.max(140 * u, Math.min(wide ? H - y - 110 * u : (H - y) * 0.42, 420 * u));
+    const figY = y;
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.5 * u; ctx.strokeRect(M, y, figW, figH);
+    if (d.sketch && o.sketch !== false) drawSketch(ctx, M + 26 * u, y + 46 * u, figW - 52 * u, figH - 80 * u, d.sketch, o, u, { color: ink, dots: true, pinBg: ink, pinInk: paper, pinFont: '"Plex Mono", monospace', pinSize: 18, pinRound: 2 });
+    else { ctx.font = `600 ${Math.min(figH * 0.4, 120 * u)}px "Newsreader", serif`; ctx.textAlign = 'center'; ctx.fillStyle = ink; ctx.fillText(d.headline, M + figW / 2, y + figH / 2 + 30 * u); }
+    ctx.textAlign = 'left'; ctx.font = `italic 400 ${19 * u}px "Newsreader", serif`; ctx.fillStyle = '#4a453b';
+    ctx.fillText(d.kind === 'trade' ? `Fig. 1: ${d.title}, as recorded in the trader's journal.` : 'Fig. 1: the equity curve, from the trader\'s journal.', M, y + figH + 26 * u);
+    const ax = wide ? M + figW + colGap : M, aw = wide ? W - M - ax : W - 2 * M; let ay = wide ? y + 6 * u : y + figH + 74 * u;
+    ctx.fillStyle = ink; ctx.font = `600 ${22 * u}px "Plex Mono", "EJ Mono"`; ctx.letterSpacing = `${1.5 * u}px`; ctx.fillText('THE NUMBERS', ax, ay); ctx.letterSpacing = '0px'; ay += 14 * u;
+    ctx.fillRect(ax, ay, aw, 1.2 * u); ay += 34 * u;
+    for (const s of (d.stats || []).slice(0, 4)) {
+      if (ay > H - 70 * u) break;
+      ctx.font = `400 ${26 * u}px "Newsreader", serif`; ctx.fillStyle = '#3c3830'; ctx.textAlign = 'left'; ctx.fillText(s.k.charAt(0) + s.k.slice(1).toLowerCase(), ax, ay);
+      ctx.font = `600 ${26 * u}px "Newsreader", serif`; ctx.fillStyle = ink; ctx.textAlign = 'right'; ctx.fillText(s.v, ax + aw, ay); ay += 40 * u;
+    }
+    ctx.textAlign = 'left'; ay += 10 * u;
+    const quote = d.result === 'loss' ? '"Tuition paid. I\'ll be back tomorrow."' : d.kind === 'payout' ? '"Paid is paid."' : '"I just followed my plan."';
+    ctx.font = `italic 400 ${30 * u}px "Newsreader", serif`; ctx.fillStyle = ink;
+    for (const l of wrapLines(ctx, quote, aw)) { if (ay > H - 90 * u) break; ctx.fillText(l, ax, ay); ay += 38 * u; }
+    if (ay < H - 90 * u) { ctx.font = `400 ${20 * u}px "Plex Mono", "EJ Mono"`; ctx.fillStyle = '#5b554a'; ctx.fillText(`  — ${o.handle || 'the trader'}`.replace('—', '-'), ax, ay); }
+    // stamp
+    if (d.result === 'loss' && o.lossFlair !== false) drawStamp(ctx, M + figW - 120 * u, figY + 50 * u, 'CORRECTION', '#b3122a', 30 * u, 0.16, 'rgba(239,233,220,.9)');
+    drawCredit(ctx, W, H, u, o, H - 26 * u, 'rgba(27,26,23,.6)');
+    ctx.restore();
+  }
+
+  /* ---------- Arcade: 8-bit scoreboard ---------- */
+  function pixelText(ctx, text, x, y, size, color, align = 'center', u = 1) {
+    // draw small, then scale up without smoothing so it looks like a pixel font
+    const px = Math.max(2, Math.round(size / 12)), c = document.createElement('canvas'), g = c.getContext('2d');
+    g.font = `700 ${12}px "EJ Mono", monospace`; const w = Math.ceil(g.measureText(text).width) + 2;
+    c.width = w; c.height = 16; g.font = `700 12px "EJ Mono", monospace`; g.fillStyle = color; g.textBaseline = 'top'; g.fillText(text, 1, 2);
+    const W = w * px, H = 16 * px, X = align === 'center' ? x - W / 2 : align === 'right' ? x - W : x;
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(c, X, y - H * 0.8, W, H); ctx.restore();
+    return W;
+  }
+  function renderArcade(ctx, W, H, bgFrame, d, o) {
+    const u = Math.min(W, H) / 1080, phase = o.phase || 0, loss = d.result === 'loss', prog = o.progress == null ? 1 : o.progress;
+    ctx.save(); ctx.shadowColor = 'transparent';
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#120a2e'); g.addColorStop(1, loss ? '#2a0610' : '#05031a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const rnd = seedRng('stars' + d.seed);
+    for (let i = 0; i < 140; i++) { const s = (rnd() < 0.85 ? 3 : 6) * u, tw = 0.4 + 0.6 * Math.abs(Math.sin((phase + rnd()) * Math.PI * 2)); ctx.fillStyle = `rgba(255,255,255,${tw * 0.8})`; ctx.fillRect(Math.round(rnd() * W / s) * s, Math.round(rnd() * H / s) * s, s, s); }
+    // perspective grid floor
+    ctx.strokeStyle = loss ? 'rgba(255,77,99,.35)' : 'rgba(46,240,164,.35)'; ctx.lineWidth = 2 * u;
+    const hz = H * 0.72;
+    for (let i = 0; i < 14; i++) { const k = ((i + phase * 2) % 14) / 14, yy = hz + (H - hz) * k * k; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
+    for (let i = -10; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(W / 2 + i * 40 * u, hz); ctx.lineTo(W / 2 + i * 220 * u, H); ctx.stroke(); }
+    const accent = loss ? '#ff4d63' : '#2ef0a4', gold = '#ffd23f';
+    pixelText(ctx, `1UP ${o.handle ? o.handle.toUpperCase().slice(0, 14) : 'PLAYER'}`, 50 * u, 80 * u, 34 * u, '#ffffff', 'left');
+    pixelText(ctx, d.kind === 'trade' ? d.title : kicker(d), W - 50 * u, 80 * u, 34 * u, gold, 'right');
+    const title = loss ? 'GAME OVER' : d.kind === 'payout' ? 'BONUS STAGE!' : d.result === 'be' ? 'DRAW' : 'LEVEL CLEAR!';
+    pixelText(ctx, title, W / 2, H * 0.24, Math.min(110 * u, W / (title.length * 0.75)), accent);
+    pixelText(ctx, 'SCORE', W / 2, H * 0.34, 36 * u, '#ffffff');
+    const head = prog < 1 && d.headFmt && d.headNum != null && isFinite(d.headNum) ? d.headFmt(d.headNum * (1 - Math.pow(1 - prog, 3))) : d.headline;
+    pixelText(ctx, head.replace(/\.\d+$/, ''), W / 2, H * 0.34 + 120 * u, Math.min(120 * u, W / (head.length * 0.7)), gold);
+    // stats as an arcade high score table
+    let y = H * 0.34 + 210 * u;
+    for (const s of (d.stats || []).slice(0, 4)) {
+      const fs = s.k.length > 12 || String(s.v).length > 12 ? 24 * u : 30 * u;
+      pixelText(ctx, s.k.slice(0, 18), W / 2 - 20 * u, y, fs, '#9fa8ff', 'right');
+      pixelText(ctx, String(s.v).toUpperCase().slice(0, 18), W / 2 + 20 * u, y, fs, '#ffffff', 'left'); y += 50 * u;
+    }
+    if (d.sketch && o.sketch !== false && y < hz - 80 * u) drawSketch(ctx, W * 0.2, y, W * 0.6, Math.min(hz - y - 30 * u, 200 * u), d.sketch, o, u, { color: accent, step: true, width: 5, pins: false });
+    if (Math.sin(phase * Math.PI * 4) > -0.2) pixelText(ctx, loss ? 'INSERT COIN TO CONTINUE' : 'PRESS START FOR NEXT TRADE', W / 2, H - 80 * u, 30 * u, '#ffffff');
+    drawCredit(ctx, W, H, u, o, H - 24 * u);
+    ctx.restore();
+  }
+
+  /* ---------- Terminal: trading terminal screen ---------- */
+  function renderTerminal(ctx, W, H, bgFrame, d, o) {
+    const u = Math.min(W, H) / 1080, phase = o.phase || 0, loss = d.result === 'loss', prog = o.progress == null ? 1 : o.progress;
+    const amber = '#ffb000', green = '#39ff88', red = '#ff4d63', col = loss ? red : d.result === 'win' ? green : amber, mono = '"EJ Mono", "Plex Mono", monospace';
+    ctx.save(); ctx.shadowColor = 'transparent'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#050607'; ctx.fillRect(0, 0, W, H);
+    // header bar
+    ctx.fillStyle = amber; ctx.fillRect(0, 0, W, 56 * u);
+    ctx.fillStyle = '#000'; ctx.font = `700 ${24 * u}px ${mono}`; ctx.textAlign = 'left';
+    ctx.fillText(`TESSRA <GO>  ${kicker(d)}  ${(d.subtitle || '').toUpperCase()}`.slice(0, Math.floor(W / (15 * u))), 24 * u, 37 * u);
+    ctx.textAlign = 'right'; ctx.fillText(o.handle ? o.handle.toUpperCase() : 'TRADER 1', W - 24 * u, 37 * u);
+    // function key strip
+    const keys = ['1) SUMMARY', '2) CHART', '3) RISK', '4) NEWS'];
+    let kx = 24 * u; ctx.font = `700 ${20 * u}px ${mono}`; ctx.textAlign = 'left';
+    keys.forEach((k, i) => { const w = ctx.measureText(k).width + 26 * u; ctx.fillStyle = i === 1 ? '#c33' : '#1d3a8a'; ctx.fillRect(kx, 74 * u, w, 36 * u); ctx.fillStyle = '#fff'; ctx.fillText(k, kx + 13 * u, 99 * u); kx += w + 10 * u; });
+    // big number line
+    const M = 40 * u; let y = 200 * u;
+    ctx.fillStyle = amber; ctx.font = `500 ${26 * u}px ${mono}`; ctx.fillText(`${d.kind === 'trade' ? d.title + ' ' + (d.side || '').toUpperCase() : kicker(d)}  NET P&L`, M, y - 50 * u);
+    const head = prog < 1 && d.headFmt && d.headNum != null && isFinite(d.headNum) ? d.headFmt(d.headNum * (1 - Math.pow(1 - prog, 3))) : d.headline;
+    const hs = fitFont(ctx, d.headline + '█', 700, mono, 150 * u, W - 2 * M, 50 * u);
+    ctx.font = `700 ${hs}px ${mono}`; ctx.fillStyle = col; ctx.shadowColor = hexA(col, .5); ctx.shadowBlur = 20 * u;
+    ctx.fillText(head, M, y + hs * 0.6); const hw = ctx.measureText(head).width; ctx.shadowBlur = 0;
+    if ((phase * 4) % 1 < 0.55) ctx.fillRect(M + hw + 12 * u, y + hs * 0.6 - hs * 0.72, hs * 0.5, hs * 0.8);
+    y += hs * 0.6 + 50 * u;
+    if (d.sub) { ctx.font = `500 ${24 * u}px ${mono}`; ctx.fillStyle = '#9aa3ad'; ctx.fillText(d.sub.toUpperCase(), M, y); y += 40 * u; }
+    // chart panel
+    const hasSk = !!(d.sketch && o.sketch !== false), wide = W / H > 1.15 && hasSk, pw = wide ? W * 0.55 : W - 2 * M, ph = hasSk ? Math.min(wide ? H - y - 90 * u : H * 0.3, 420 * u) : -50 * u;
+    if (hasSk) {
+    ctx.strokeStyle = '#2a2f36'; ctx.lineWidth = 2 * u; ctx.strokeRect(M, y, pw, ph);
+    ctx.fillStyle = '#0b1a12'; ctx.fillRect(M + 1, y + 1, pw - 2, ph - 2);
+    ctx.strokeStyle = 'rgba(57,255,136,.08)'; for (let gx = M; gx < M + pw; gx += 40 * u) { ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y + ph); ctx.stroke(); } for (let gy = y; gy < y + ph; gy += 40 * u) { ctx.beginPath(); ctx.moveTo(M, gy); ctx.lineTo(M + pw, gy); ctx.stroke(); }
+    drawSketch(ctx, M + 20 * u, y + 50 * u, pw - 40 * u, ph - 80 * u, d.sketch, o, u, { color: col, glow: hexA(col, .6), width: 3, pinBg: amber, pinInk: '#000', pinFont: mono, pinSize: 18, pinRound: 0 });
+    }
+    // stats table with dotted leaders
+    const tx = wide ? M + pw + 40 * u : M, tw = wide ? W - tx - M : W - 2 * M; let ty = wide ? y + 30 * u : y + ph + 50 * u;
+    ctx.font = `500 ${24 * u}px ${mono}`;
+    for (const s of (d.stats || []).slice(0, 4)) {
+      if (ty > H - 70 * u) break;
+      ctx.fillStyle = amber; ctx.textAlign = 'left'; ctx.fillText(s.k, tx, ty);
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(String(s.v), tx + tw, ty);
+      const kw = ctx.measureText(s.k).width, vw = ctx.measureText(String(s.v)).width; ctx.fillStyle = '#3a3f46'; ctx.textAlign = 'left';
+      let dots = ''; while (ctx.measureText(dots + '.').width < tw - kw - vw - 24 * u) dots += '.'; ctx.fillText(dots, tx + kw + 12 * u, ty);
+      ty += 46 * u;
+    }
+    // ticker tape
+    ctx.fillStyle = '#111418'; ctx.fillRect(0, H - 56 * u, W, 56 * u);
+    ctx.font = `500 ${20 * u}px ${mono}`; ctx.textAlign = 'left';
+    const tape = `${creditText(o) || 'TESSRA JOURNAL'}   ·   ${d.meta || ''}   ·   `.toUpperCase();
+    const tpw = ctx.measureText(tape).width, off = -((phase * tpw) % tpw);
+    for (let x = off; x < W; x += tpw) { ctx.fillStyle = amber; ctx.fillText(tape, x, H - 21 * u); }
+    if (loss && o.lossFlair !== false) { ctx.fillStyle = red; ctx.font = `700 ${22 * u}px ${mono}`; ctx.textAlign = 'right'; ctx.fillText('** STOPPED OUT. TUITION PAID. **', W - M, 160 * u); }
+    ctx.restore();
+  }
+
   /* ---------- the card renderer ---------- */
   function fitFont(ctx, text, weight, fam, size, maxW, min) {
     let s = size;
@@ -597,6 +899,10 @@ const Share = (() => {
     if (o.layout === 'spotlight') return renderSpotlight(ctx, W, H, bgFrame, d, o);
     if (o.layout === 'collect') return renderCollect(ctx, W, H, bgFrame, d, o);
     if (o.layout === 'receipt') return renderReceipt(ctx, W, H, bgFrame, d, o);
+    if (o.layout === 'poster') return renderPoster(ctx, W, H, bgFrame, d, o);
+    if (o.layout === 'news') return renderNews(ctx, W, H, bgFrame, d, o);
+    if (o.layout === 'arcade') return renderArcade(ctx, W, H, bgFrame, d, o);
+    if (o.layout === 'terminal') return renderTerminal(ctx, W, H, bgFrame, d, o);
     const u = Math.min(W, H) / 1080, F = FONTS[o.font] || FONTS.clean;
     const col = d.result === 'loss' ? NEG : d.result === 'win' ? POS : NEU;
     ctx.save();
@@ -610,8 +916,9 @@ const Share = (() => {
     const pw = Math.min(W - 110 * u, 940 * u), pad = 58 * u;
     const inner = pw - pad * 2;
     // measure
-    const headSize = fitFont(ctx, d.headline, F.numW, F.num, (d.curve ? 150 : 172) * u, inner, 60 * u);
-    const L = { chips: 56 * u, g1: (d.curve ? 30 : 46) * u, head: headSize * 0.8, g2: 34 * u, sub: 34 * u, g3: d.curve ? 34 * u : 50 * u, curve: d.curve ? 120 * u : 0, gd: d.dots ? 22 * u : 0, dots: d.dots ? 22 * u : 0, gc: d.curve ? 26 * u : 0, line: 1, g4: (d.curve ? 34 : 44) * u, stats: 92 * u, g5: d.meta ? (d.curve ? 36 : 46) * u : 0, meta: d.meta ? 26 * u : 0 };
+    const skC = !d.curve && d.sketch && o.sketch !== false ? d.sketch : null, curveish = d.curve || skC;
+    const headSize = fitFont(ctx, d.headline, F.numW, F.num, (curveish ? 150 : 172) * u, inner, 60 * u);
+    const L = { chips: 56 * u, g1: (curveish ? 30 : 46) * u, head: headSize * 0.8, g2: 34 * u, sub: 34 * u, g3: curveish ? 34 * u : 50 * u, curve: d.curve ? 120 * u : skC ? 170 * u : 0, gd: d.dots ? 22 * u : 0, dots: d.dots ? 22 * u : 0, gc: curveish ? 26 * u : 0, line: 1, g4: (curveish ? 34 : 44) * u, stats: 92 * u, g5: d.meta ? (curveish ? 36 : 46) * u : 0, meta: d.meta ? 26 * u : 0 };
     const ph = pad * 2 + Object.values(L).reduce((a, b) => a + b, 0);
     const px = (W - pw) / 2;
     const py = Math.max(150 * u, (H - ph) / 2);
@@ -697,6 +1004,9 @@ const Share = (() => {
         d.dots.forEach((r, i) => { ctx.fillStyle = i >= shown ? 'rgba(255,255,255,.08)' : r === 'win' ? POS : r === 'loss' ? NEG : 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.roundRect(dx, y, sz, sz, 5 * u); ctx.fill(); dx += sz + gap; });
       }
       y += L.dots + L.gc;
+    } else if (skC) {
+      ctx.save(); ctx.shadowColor = 'transparent'; drawSketch(ctx, px + pad + 20 * u, y + 40 * u, inner - 40 * u, L.curve - 40 * u, skC, o, u); ctx.restore();
+      y += L.curve + L.gc;
     }
 
     // divider
@@ -893,7 +1203,7 @@ const Share = (() => {
   async function open(kind, ref) {
     await fontsReady;
     const c0 = cfg();
-    const o = Object.assign({ size: 'banner', layout: 'spotlight', numColor: 'white', metric: 'usd', font: 'clean', dim: 0.35, panel: true, hideDollars: false, countUp: true, credit: true, invite: true, lossFlair: true }, c0.last && c0.last.v2 ? c0.last : Object.assign({}, c0.last || {}, { size: 'banner', layout: 'spotlight', dim: 0.35 }), { username: c0.handle || '', showHandle: c0.showHandle !== false, tagline: c0.tagline, verified: !!c0.verified });
+    const o = Object.assign({ size: 'banner', layout: 'spotlight', numColor: 'white', metric: 'usd', font: 'clean', dim: 0.35, panel: true, hideDollars: false, countUp: true, credit: true, invite: true, lossFlair: true, sketch: true }, c0.last && c0.last.v2 ? c0.last : Object.assign({}, c0.last || {}, { size: 'banner', layout: 'spotlight', dim: 0.35 }), { username: c0.handle || '', showHandle: c0.showHandle !== false, tagline: c0.tagline, verified: !!c0.verified });
     const syncHandle = () => { o.handle = o.showHandle ? o.username.trim() : ''; };
     syncHandle();
     if (c0.avatar) { try { o.avatarImg = await loadImg(await S.readImage(c0.avatar)); } catch (e) {} }
@@ -920,7 +1230,7 @@ const Share = (() => {
           </div>
           <div class="hint share-hint" id="gifHint"></div></div>
         <div class="share-ctrl">
-          <div class="field"><label>Layout</label>${segH('layout', [['spotlight', 'Spotlight'], ['classic', 'Centered'], ['collect', 'Collectible'], ['receipt', 'Receipt']])}${kind === 'trade' ? '<span class="hint">Collectible cards get a rarity from the R multiple: Rare 3R, Epic 5R, Legendary 10R.</span>' : ''}</div>
+          <div class="field"><label>Layout</label><div class="layout-grid">${segH('layout', [['spotlight', 'Spotlight'], ['classic', 'Centered'], ['poster', 'Poster'], ['collect', 'Collectible'], ['receipt', 'Receipt'], ['news', 'Newspaper'], ['arcade', 'Arcade'], ['terminal', 'Terminal']])}</div>${kind === 'trade' ? '<span class="hint">Collectible cards get a rarity from the R multiple: Rare 3R, Epic 5R, Legendary 10R.</span>' : ''}</div>
           <div class="field" id="numColF"><label>Number color</label>${segH('numColor', [['white', 'White'], ['result', 'Green / red']])}</div>
           <div class="field"><label>Size</label>${segH('size', Object.entries(SIZES).map(([k, v]) => [k, v[2]]))}</div>
           ${metricOpts.length ? `<div class="field"><label>Headline</label><div id="metricSeg">${segH('metric', metricOpts)}</div></div>` : ''}
@@ -928,12 +1238,12 @@ const Share = (() => {
           <div class="field"><label>Username</label><div class="row" style="gap:10px;align-items:center"><input class="input" id="shareUser" value="${esc(o.username)}" placeholder="@yourname" maxlength="32" style="flex:1"><label class="row" style="gap:6px;cursor:pointer;font-size:13px;white-space:nowrap"><input type="checkbox" id="shareUserOn" ${o.showHandle ? 'checked' : ''} style="accent-color:var(--accent)">Show on card</label></div></div>
           <div class="field"><label>Background</label><div class="bg-grid" id="bgGrid">${thumbs()}</div><span class="hint">Auto uses your Settings library: win backgrounds on green trades, loss backgrounds on red.</span></div>
           <div class="field"><label>Darken background <span class="faint" id="dimV">${Math.round(o.dim * 100)}%</span></label><input type="range" min="0" max="85" value="${Math.round(o.dim * 100)}" id="dimR" class="range"></div>
-          <div class="check-list"><label><input type="checkbox" data-ck="countUp" ${o.countUp ? 'checked' : ''}>Count-up animation (P&L tallies up from 0 in the GIF)</label><label><input type="checkbox" data-ck="panel" ${o.panel ? 'checked' : ''}>Glass panel behind stats</label><label><input type="checkbox" data-ck="hideDollars" ${o.hideDollars ? 'checked' : ''}>Hide dollar amounts (show R and points)</label><label><input type="checkbox" data-ck="lossFlair" ${o.lossFlair ? 'checked' : ''}>Fun stamps on losses (Took an L, Tuition paid)</label><label><input type="checkbox" data-ck="credit" ${o.credit ? 'checked' : ''}>Small "Made with Tessra" line</label><label><input type="checkbox" data-ck="invite" ${o.invite ? 'checked' : ''}>Include the Discord invite in that line</label></div>
+          <div class="check-list"><label><input type="checkbox" data-ck="countUp" ${o.countUp ? 'checked' : ''}>Count-up animation (P&L tallies up from 0 in the GIF)</label><label><input type="checkbox" data-ck="panel" ${o.panel ? 'checked' : ''}>Glass panel behind stats</label><label><input type="checkbox" data-ck="hideDollars" ${o.hideDollars ? 'checked' : ''}>Hide dollar amounts (show R and points)</label><label><input type="checkbox" data-ck="sketch" ${o.sketch !== false ? 'checked' : ''}>Chart sketch (a price line drawn from your entry, exit, stop and best price)</label><label><input type="checkbox" data-ck="lossFlair" ${o.lossFlair ? 'checked' : ''}>Fun stamps on losses (Took an L, Tuition paid)</label><label><input type="checkbox" data-ck="credit" ${o.credit ? 'checked' : ''}>Small "Made with Tessra" line</label><label><input type="checkbox" data-ck="invite" ${o.invite ? 'checked' : ''}>Include the Discord invite in that line</label></div>
 
         </div>
       </div>`, { size: 'xl', onClose: () => clearTimeout(timer) });
     const cv = m.querySelector('#shareCv'), stage = m.querySelector('.share-stage');
-    const shimmer = () => o.layout === 'collect';
+    const shimmer = () => o.layout === 'collect' || o.layout === 'arcade' || o.layout === 'terminal';
     const isAnimated = () => !!(bgData && bgData.animated) || !!o.countUp || shimmer();
 
     const draw = it => {
@@ -970,14 +1280,14 @@ const Share = (() => {
       if (r.user) { try { bgData = await loadBackground(r.user); } catch (e) { toast('Could not load that background'); } }
       restart();
     };
-    const rememberOpts = () => { const { size, metric, font, dim, panel, countUp, layout, numColor, credit, invite, lossFlair } = o; cfg().last = { size, metric, font, dim, panel, countUp, layout, numColor, credit, invite, lossFlair, v2: true }; S.save(); };
+    const rememberOpts = () => { const { size, metric, font, dim, panel, countUp, layout, numColor, credit, invite, lossFlair, sketch } = o; cfg().last = { size, metric, font, dim, panel, countUp, layout, numColor, credit, invite, lossFlair, sketch, v2: true }; S.save(); };
 
     m.addEventListener('click', async e => {
       const ob = e.target.closest('[data-o]');
       if (ob) {
         o[ob.dataset.o] = ob.dataset.v; ob.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === ob));
         // tall layouts look best tall: switch wide sizes to portrait
-        if (ob.dataset.o === 'layout' && (o.layout === 'collect' || o.layout === 'receipt') && (o.size === 'banner' || o.size === 'wide')) { o.size = 'portrait'; m.querySelectorAll('[data-o=size]').forEach(b => b.classList.toggle('on', b.dataset.v === 'portrait')); }
+        if (ob.dataset.o === 'layout' && (o.layout === 'collect' || o.layout === 'receipt' || o.layout === 'poster') && (o.size === 'banner' || o.size === 'wide')) { o.size = 'portrait'; m.querySelectorAll('[data-o=size]').forEach(b => b.classList.toggle('on', b.dataset.v === 'portrait')); }
         rememberOpts(); restart(); return;
       }
       const bb = e.target.closest('.bg-thumb[data-bg]');
@@ -1026,7 +1336,7 @@ const Share = (() => {
     m.querySelector('#dimR').addEventListener('input', e => { o.dim = e.target.value / 100; m.querySelector('#dimV').textContent = e.target.value + '%'; rememberOpts(); redraw(); });
     m.querySelector('#shareUser').addEventListener('input', e => { o.username = e.target.value; cfg().handle = o.username.trim(); if (o.username.trim() && !o.showHandle) { o.showHandle = true; cfg().showHandle = true; m.querySelector('#shareUserOn').checked = true; } syncHandle(); S.save(); redraw(); });
     m.querySelector('#shareUserOn').addEventListener('change', e => { o.showHandle = e.target.checked; cfg().showHandle = o.showHandle; syncHandle(); S.save(); redraw(); });
-    m.querySelectorAll('[data-ck]').forEach(cb => cb.addEventListener('change', () => { o[cb.dataset.ck] = cb.checked; rememberOpts(); if (cb.dataset.ck === 'countUp' || cb.dataset.ck === 'hideDollars') restart(); else redraw(); }));
+    m.querySelectorAll('[data-ck]').forEach(cb => cb.addEventListener('change', () => { o[cb.dataset.ck] = cb.checked; rememberOpts(); if (cb.dataset.ck === 'countUp' || cb.dataset.ck === 'hideDollars' || cb.dataset.ck === 'sketch') restart(); else redraw(); }));
     requestAnimationFrame(applyChoice);
   }
 

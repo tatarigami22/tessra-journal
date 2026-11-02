@@ -86,6 +86,7 @@ function payoutPlannerHtml() {
         ${p.buffer ? `<div class="lr-sub" style="margin-top:10px">Buffer: balance must stay above <b>${money0(p.bufferLine)}</b>. ${p.aboveBuffer > 0 ? `You're ${money0(p.aboveBuffer)} above it, so that's the most you can take out.` : `You need ${money0(-p.aboveBuffer)} more before any payout.`}</div>` : ''}
         ${(() => { const need = Math.max(p.toFullPayout || 0, p.buffer && Number(r.maxPayout) ? Number(r.maxPayout) - Math.max(0, p.aboveBuffer) : 0); return !Number(r.maxPayout) ? '' : need > 0 ? `<div class="lr-sub" style="margin-top:10px">${money0(need)} more profit unlocks the full ${money0(r.maxPayout)} request.</div>` : `<div class="lr-sub" style="margin-top:10px">${p.baseLabel === 'cycle' ? 'Cycle' : 'Account'} profit covers the full ${money0(r.maxPayout)} request.</div>`; })()}
         <div class="check-list mt">${p.checks.map(c => `<label style="cursor:default;font-size:12.5px"><span class="${c.ok ? 'pos' : 'faint'}" style="display:grid">${c.ok ? ICON.check : I('<circle cx="12" cy="12" r="8"/>', 15)}</span>${esc(c.label)}</label>`).join('')}</div>
+        ${payoutPathHtml(a)}
         <div class="row mt"><button class="btn sm ${p.eligible ? 'primary' : ''}" data-action="request-payout" data-id="${a.id}" ${p.eligible ? '' : 'disabled title="Not eligible yet"'}>${ICON.plus}Log payout of ${money0(p.cap)}</button></div>
       </div>`;
     }).join('')}</div></div>`;

@@ -110,6 +110,7 @@ const ACTIONS = {
   'mm-size': el => { mmCfg().size = el.dataset.v; S.save(); render(true); },
   'mm-source': el => { mmCfg().source = el.dataset.v; S.save(); render(true); },
   'open-matchmaker': () => { ui.anTab = 'firms'; go('analytics'); },
+  'copilot-open': () => openCopilot(false),
   'share-payout': el => Share.open('payout', el.dataset.id),
   'open-wrapped': el => openWrapped(el.dataset.y),
   'wrapped-dismiss': el => { S.state.settings.wrappedSeen = el.dataset.y + ':dismissed'; S.save(); render(); },
@@ -229,4 +230,5 @@ window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTi
   S.onChange(syncMenuBar); syncMenuBar(); setInterval(syncMenuBar, 60000);
   if (window.edge && window.edge.onTrayNewTrade) window.edge.onTrayNewTrade(() => newTradeGate(x => openTradeModal(null, x || {})));
   setTimeout(checkForUpdates, 3000);
+  setTimeout(() => { if (!needsSetup()) maybeCopilotPopup(); }, 2500);
 })();

@@ -88,6 +88,7 @@ function pageDashboard() {
   </div>
   ${lockBannerHtml()}
   ${wrappedBannerHtml()}
+  ${copilotHtml(true)}
   ${edgeAlertsHtml()}
   ${(() => { const a = rulesAlerts(tdTrades); return a ? `<div class="grid" style="gap:8px;margin-bottom:16px">${a}</div>` : ''; })()}
   <div class="grid g-6">
